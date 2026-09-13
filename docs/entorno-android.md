@@ -77,6 +77,19 @@ La app del ejemplo elige el GGUF con el selector de ficheros del sistema y lo **
 almacenamiento interno (`filesDir/models/`). Para probarla basta con `adb push` del modelo a
 `/sdcard/Download/` y seleccionarlo desde la app; la copia de 1,1 GB tarda un rato la primera vez.
 
+## Toolchain validado (plan 01, paso 3.3, hecho fuera del repo)
+
+El ejemplo oficial compila **sin modificar** desde este PC:
+
+| Dato | Valor |
+| --- | --- |
+| Fuente | clon de llama.cpp en tag b10941, en `C:\tmp\zca-llama` (temporal, fuera del repo) |
+| Comando | `JAVA_HOME=<Temurin 17> bash gradlew --no-daemon :app:assembleDebug` |
+| Tiempo (primera vez, sin caché) | 4 min 11 s |
+| Resultado | `app/build/outputs/apk/debug/app-debug.apk`, 109 MB (arm64-v8a + x86_64, todas las variantes de CPU) |
+
+Queda pendiente instalarlo y medirlo en el A53 (pasos 3.4–3.6) cuando el móvil esté conectado.
+
 ## Incidencias
 
 - `edgedl.me.gvt1.com` devolvió error HTTP para el zip de command-line tools; la misma ruta en
@@ -86,3 +99,12 @@ almacenamiento interno (`filesDir/models/`). Para probarla basta con `adb push` 
 - El ejemplo solo trae `gradlew` (sin `.bat`): se lanza con `bash gradlew` desde Git Bash.
 - Gradle 8.14.3 no arranca con el Java 25 de Android Studio ("What went wrong: 25.0.3"). Hace
   falta un JDK 17 aparte; con `JAVA_HOME` apuntando a Temurin 17 compila.
+- Con el proyecto en una ruta larga (~150 caracteres) la configuración de CMake falla en la
+  descarga de KleidiAI: `ninja: error: manifest 'build.ninja' still dirty after 100 tries`.
+  Gradle no muestra ese mensaje; salió al ejecutar `cmake.exe` a mano con los mismos argumentos.
+  En `C:\tmp\zca-llama` configura sin problema. **La ruta del repo
+  (`C:\MIOS\IAlogia\proyectos\ZeroCloudAssist\third_party\llama.cpp`) es corta y no debería
+  verse afectada, pero si el submódulo falla igual, la salida es un `subst` o mover el repo.**
+- `local.properties` es un fichero de propiedades Java: `sdk.dir=C:\Users\...` con barras
+  invertidas simples se interpreta como escapes y el build falla en segundos sin mensaje útil.
+  Escribirlo con barras normales: `sdk.dir=C:/Users/Francisco/AppData/Local/Android/Sdk`.
