@@ -1,0 +1,11 @@
+MODELO: qwen2.5-0.5b-instruct-q4_k_m.gguf
+PROMPT: ¿Qué es un variador de frecuencia?
+----
+Un variador de frecuencia es un dispositivo utilizado para ajustar la frecuencia de una fuente de electricidad, como un motor, a un nivel específico. Este tipo de variadores se utilizan en sistemas de generación de electricidad para controlar la velocidad de la generación. [end of text]
+
+
+----
+0.02.591.538 I common_perf_print:        load time =     491.19 ms
+0.02.591.540 I common_perf_print: prompt eval time =     198.79 ms /    65 tokens (    3.06 ms per token,   326.98 tokens per second)
+0.02.591.541 I common_perf_print:        eval time =    1430.74 ms /    59 runs   (   24.25 ms per token,    41.24 tokens per second)
+0.02.591.543 I common_perf_print: unaccounted time =      32.58 ms /   1.9 %      (total - sampling - prompt eval - eval) / (total)

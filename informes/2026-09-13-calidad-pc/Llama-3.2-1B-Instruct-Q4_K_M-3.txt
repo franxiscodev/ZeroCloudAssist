@@ -1,0 +1,20 @@
+MODELO: Llama-3.2-1B-Instruct-Q4_K_M.gguf
+PROMPT: ¿Cómo mido la tensión del bus de continua del variador?
+----
+Para medir la tensión del bus de continua del variador, puedes seguir estos pasos:
+
+1. **Verifica si hay riesgo eléctrico**: Antes de comenzar, asegúrate de que no haya riesgo eléctrico en el área. Verifica que el área esté bien ventilada y que no haya cables o componentes eléctricos a la vista.
+
+2. **Ubica el variador**: Localiza el variador y asegúrate de que esté desconectado de la red eléctrica.
+
+3. **Ubica el bus de continua**: Busca el bus de continua del variador. Es probablemente un cable o un circuito que conecta el variador al bus de continua.
+
+4. **Ubica el cable de tensión**: Busca el cable de tensión que conecta el variador al bus de continua. Es posible que sea un cable de 2-4 kV.
+
+5. **Med
+
+----
+0.11.919.216 I common_perf_print:        load time =     761.59 ms
+0.11.919.218 I common_perf_print: prompt eval time =     254.01 ms /    93 tokens (    2.73 ms per token,   366.13 tokens per second)
+0.11.919.220 I common_perf_print:        eval time =   10274.20 ms /   199 runs   (   51.63 ms per token,    19.37 tokens per second)
+0.11.919.222 I common_perf_print: unaccounted time =      35.57 ms /   0.3 %      (total - sampling - prompt eval - eval) / (total)
