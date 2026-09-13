@@ -99,12 +99,29 @@ Queda pendiente instalarlo y medirlo en el A53 (pasos 3.4–3.6) cuando el móvi
 - El ejemplo solo trae `gradlew` (sin `.bat`): se lanza con `bash gradlew` desde Git Bash.
 - Gradle 8.14.3 no arranca con el Java 25 de Android Studio ("What went wrong: 25.0.3"). Hace
   falta un JDK 17 aparte; con `JAVA_HOME` apuntando a Temurin 17 compila.
-- Con el proyecto en una ruta larga (~150 caracteres) la configuración de CMake falla en la
-  descarga de KleidiAI: `ninja: error: manifest 'build.ninja' still dirty after 100 tries`.
-  Gradle no muestra ese mensaje; salió al ejecutar `cmake.exe` a mano con los mismos argumentos.
-  En `C:\tmp\zca-llama` configura sin problema. **La ruta del repo
-  (`C:\MIOS\IAlogia\proyectos\ZeroCloudAssist\third_party\llama.cpp`) es corta y no debería
-  verse afectada, pero si el submódulo falla igual, la salida es un `subst` o mover el repo.**
+- **Límite de 260 caracteres de Windows (MAX_PATH) en el build nativo.** KleidiAI se descarga
+  dentro del directorio de build de CMake y uno de sus ficheros tiene una cola fija de 138
+  caracteres (`_deps/kleidiai-src/kai/ukernels/matmul/.../kai_matmul_clamp_f16_..._asm.S`).
+  Con la ruta del prefijo, ninja falla con `Filename longer than 260 characters` (en el scratchpad
+  de la sesión apareció como `manifest 'build.ninja' still dirty after 100 tries`, que Gradle no
+  muestra: salió al lanzar `cmake.exe` a mano).
+
+  | Ubicación del directorio de build | Longitud total | Resultado |
+  | --- | --- | --- |
+  | `third_party/llama.cpp/examples/llama.android/lib/.cxx/...` (ejemplo dentro del submódulo) | 261 | **Falla** |
+  | `C:/tmp/zca-llama/examples/llama.android/lib/.cxx/...` | 214 | Compila |
+  | `android/lib/.cxx/...` (app propia, etapa 4) | 224 | Cabe, 36 de margen |
+
+  Consecuencias:
+  - El ejemplo oficial **no se puede compilar desde dentro del submódulo** en esta máquina. El
+    paso 3.2 del plan (abrirlo en Android Studio desde `third_party/`) no vale tal cual; el
+    ejemplo se compila desde un clon en `C:\tmp\zca-llama` y su APK es el que se instala en 3.4.
+  - La app propia en `android/` no necesita ningún apaño, pero **si el repo se clona en una ruta
+    más de 36 caracteres más larga, volverá a fallar**.
+  - Arreglo de raíz, opcional y con permisos de administrador: el ninja del SDK (1.12.1) declara
+    `longPathAware` en su manifiesto, así que basta con activar las rutas largas en Windows:
+    `Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem LongPathsEnabled 1`
+    y reiniciar. Hoy está a `0`.
 - `local.properties` es un fichero de propiedades Java: `sdk.dir=C:\Users\...` con barras
   invertidas simples se interpreta como escapes y el build falla en segundos sin mensaje útil.
   Escribirlo con barras normales: `sdk.dir=C:/Users/Francisco/AppData/Local/Android/Sdk`.
