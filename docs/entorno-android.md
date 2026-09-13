@@ -51,15 +51,47 @@ compiladas, y se elige en tiempo de ejecución según el SoC. En `arm64-v8a` el 
 del módulo activa además KleidiAI y OpenMP. ABIs del ejemplo: `arm64-v8a` y `x86_64`; para la
 app propia se dejará solo `arm64-v8a`.
 
-## Móvil (rellenar en el paso 1.7–1.10)
+## Móvil (pasos 1.7–1.10, leído el 2026-09-13)
 
 | Campo | Valor |
 | --- | --- |
-| Modelo | Samsung Galaxy A53 5G |
-| Android / API | pendiente (`adb shell getprop ro.build.version.release` / `.sdk`) |
-| `MemTotal` / `MemAvailable` en reposo | pendiente (`adb shell cat /proc/meminfo`) |
-| Espacio libre en `/sdcard` | pendiente (`adb shell df -h /sdcard`) |
-| `adb devices` | pendiente |
+| Modelo | Samsung Galaxy A53 5G, `SM-A536E` (`a53xnsxx`) |
+| Build | `BP2A.250605.031.A3.A536EXXSNGZG3` |
+| Android / API | **16 / 36** (el ejemplo exige ≥ 33: OK) |
+| SoC | Exynos 1280 (`s5e8825`): 2× Cortex-A78 (`0xd41`) + 6× Cortex-A55 (`0xd05`), 8 núcleos |
+| Extensiones CPU | `asimddp` (dotprod) y `fphp`/`asimdhp` (fp16) **sí**; `i8mm` y SVE **no** |
+| `MemTotal` | 5 517 932 kB (5,5 GB) |
+| `MemAvailable` | 2 053 524 kB (2,05 GB) **con apps abiertas**; repetir en reposo antes de medir |
+| Swap (zram, "RAM Plus" de Samsung) | 8 GB, 7,2 GB libres |
+| Espacio libre | 41 GB en `/storage/emulated` |
+| Batería al leer | 94 %, sin cargar, 35,2 °C |
+| Conexión ADB | **Wi-Fi** (depuración inalámbrica), PC `192.168.1.37`, móvil `192.168.1.39` |
+
+Lectura para el plan:
+
+- **Puerta de memoria (§2b): pasa, con poco margen.** 2,05 GB frente al umbral de 1,8 GB, y
+  medido sin cerrar apps. Qwen 1.5B sigue siendo el candidato principal.
+- La zram de 8 GB hace que Android comprima memoria anónima antes de matar procesos. Los pesos
+  del modelo van por mmap (páginas de fichero, no van a zram): bajo presión se descartan y se
+  releen del almacenamiento, lo que se vería como tok/s inestable, no como cierre.
+- Sin `i8mm`, llama.cpp elegirá la variante de kernels ARMv8.2 con dotprod
+  (`libggml-cpu-android_armv8.2_*`). Confirmarlo en el log al cargar.
+
+### Conectar por depuración inalámbrica
+
+Vincular una sola vez (el código caduca si se cierra el diálogo o se bloquea la pantalla):
+
+```powershell
+# Móvil: Opciones de desarrollador > Depuración inalámbrica > Vincular con código
+adb pair <IP>:<puerto-de-vinculación> <código>
+```
+
+Después ADB se conecta solo por mDNS. Si no, el puerto de conexión se ve en la pantalla
+principal de Depuración inalámbrica o con `adb mdns services`, y se usa `adb connect <IP>:<puerto>`.
+El puerto de conexión cambia al reiniciar el móvil o cambiar de Wi-Fi.
+
+Desde Git Bash, las rutas del móvil (`/sdcard/...`) se reescriben como rutas de Windows y
+`adb push` escribe donde no debe. Usar PowerShell o anteponer `MSYS_NO_PATHCONV=1`.
 
 ## Valores por defecto del motor en el ejemplo (`lib/src/main/cpp/ai_chat.cpp`, b10941)
 
