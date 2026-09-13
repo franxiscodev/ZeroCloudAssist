@@ -8,7 +8,8 @@ asistente gráfico de Android Studio.
 | Componente | Versión | Cómo se instaló |
 | --- | --- | --- |
 | Android Studio | 2026.1.4 (Quail 4), build AI-261.26222.65 | `winget install --id Google.AndroidStudio --exact` |
-| JDK | OpenJDK 25.0.3, el que trae Studio en `C:\Program Files\Android\Android Studio\jbr` | con Studio |
+| JDK para `sdkmanager` | OpenJDK 25.0.3, el que trae Studio en `C:\Program Files\Android\Android Studio\jbr` | con Studio |
+| JDK para Gradle | Temurin 17.0.20 en `C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot` | `winget install --id EclipseAdoptium.Temurin.17.JDK --exact` |
 | Command-line tools | `commandlinetools-win-15859902_latest.zip` (SHA256 verificado) | descarga manual a `Sdk\cmdline-tools\latest` |
 | Platform-tools (`adb`) | ver `adb version` | `sdkmanager --install platform-tools` |
 | Plataforma | `platforms;android-36` | `sdkmanager` |
@@ -60,7 +61,28 @@ app propia se dejará solo `arm64-v8a`.
 | Espacio libre en `/sdcard` | pendiente (`adb shell df -h /sdcard`) |
 | `adb devices` | pendiente |
 
+## Valores por defecto del motor en el ejemplo (`lib/src/main/cpp/ai_chat.cpp`, b10941)
+
+| Constante | Valor | Consecuencia para el A53 |
+| --- | --- | --- |
+| `DEFAULT_CONTEXT_SIZE` | 8192 | Demasiado para 2 GB libres. La app propia lo baja a 2048 (plan 01 §2) |
+| `N_THREADS_MIN` / `MAX` / `HEADROOM` | 2 / 4 / 2 | En 8 núcleos: min(4, 8−2) = 4 hilos. Coincide con el punto de partida del plan |
+| `BATCH_SIZE` | 512 | OK |
+| `DEFAULT_SAMPLER_TEMP` | 0.3 | La app propia usa 0.2 como el protocolo |
+
+Como estas constantes no son configurables desde Kotlin, la app propia llevará **su propia copia
+del módulo `lib`** con esos valores ajustados, en vez de referenciar el del submódulo.
+
+La app del ejemplo elige el GGUF con el selector de ficheros del sistema y lo **copia** a su
+almacenamiento interno (`filesDir/models/`). Para probarla basta con `adb push` del modelo a
+`/sdcard/Download/` y seleccionarlo desde la app; la copia de 1,1 GB tarda un rato la primera vez.
+
 ## Incidencias
 
 - `edgedl.me.gvt1.com` devolvió error HTTP para el zip de command-line tools; la misma ruta en
   `dl.google.com/android/repository/` funcionó a la primera.
+- El clon de llama.cpp falla en Windows con "Filename too long" (rutas de `tools/ui`). Arreglo:
+  `git config --global core.longpaths true`. Afecta también al submódulo del repo.
+- El ejemplo solo trae `gradlew` (sin `.bat`): se lanza con `bash gradlew` desde Git Bash.
+- Gradle 8.14.3 no arranca con el Java 25 de Android Studio ("What went wrong: 25.0.3"). Hace
+  falta un JDK 17 aparte; con `JAVA_HOME` apuntando a Temurin 17 compila.
