@@ -1,0 +1,11 @@
+# Finales de línea LF en el repo y en el checkout, en todas las plataformas.
+# Evita que scripts .sh y ficheros Gradle lleguen con CRLF a un runner Linux.
+* text=auto eol=lf
+
+# Binarios
+*.png binary
+*.jpg binary
+*.pdf binary
+*.gguf binary
+*.apk binary
+*.jar binary
