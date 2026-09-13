@@ -61,7 +61,8 @@ app propia se dejará solo `arm64-v8a`.
 | SoC | Exynos 1280 (`s5e8825`): 2× Cortex-A78 (`0xd41`) + 6× Cortex-A55 (`0xd05`), 8 núcleos |
 | Extensiones CPU | `asimddp` (dotprod) y `fphp`/`asimdhp` (fp16) **sí**; `i8mm` y SVE **no** |
 | `MemTotal` | 5 517 932 kB (5,5 GB) |
-| `MemAvailable` | 2 053 524 kB (2,05 GB) **con apps abiertas**; repetir en reposo antes de medir |
+| `MemAvailable` con apps abiertas | 2 053 524 kB (2,05 GB) |
+| `MemAvailable` **en reposo** (apps cerradas, 3 muestras cada 5 s) | 2 129 832 / 2 118 360 / 2 130 144 kB → **2,13 GB** |
 | Swap (zram, "RAM Plus" de Samsung) | 8 GB, 7,2 GB libres |
 | Espacio libre | 41 GB en `/storage/emulated` |
 | Batería al leer | 94 %, sin cargar, 35,2 °C |
@@ -69,8 +70,8 @@ app propia se dejará solo `arm64-v8a`.
 
 Lectura para el plan:
 
-- **Puerta de memoria (§2b): pasa, con poco margen.** 2,05 GB frente al umbral de 1,8 GB, y
-  medido sin cerrar apps. Qwen 1.5B sigue siendo el candidato principal.
+- **Puerta de memoria (§2b): pasa.** 2,13 GB en reposo frente al umbral de 1,8 GB, unos
+  330 MB de margen. Qwen 1.5B sigue siendo el candidato principal.
 - La zram de 8 GB hace que Android comprima memoria anónima antes de matar procesos. Los pesos
   del modelo van por mmap (páginas de fichero, no van a zram): bajo presión se descartan y se
   releen del almacenamiento, lo que se vería como tok/s inestable, no como cierre.
