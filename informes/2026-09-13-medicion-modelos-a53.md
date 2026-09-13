@@ -3,7 +3,8 @@
 Plan 01, etapa 2C. Objetivo: tok/s, TTFT, carga y memoria de cada modelo en el móvil real,
 antes de escribir código propio. Criterios go/no-go en §3 del plan.
 
-**Estado: en curso.** Las celdas `—` se rellenan durante la medición.
+**Estado: medición cerrada (tandas 1 a 4).** Resultado y recomendación en la última sección,
+"Decisión según §3". El Gate G1 queda pendiente de la decisión de Francisco.
 
 ## Condiciones
 
@@ -243,19 +244,54 @@ con 4 hilos dos caen en los núcleos lentos A55, así que el procesado del promp
 cálculo) puede mejorar con 6 u 8 hilos, o incluso con 2 si caen en los A78. La generación
 (limitada por memoria) probablemente no.
 
-## Prompts del protocolo (§5), un chat nuevo por ejecución
+## Barrido de hilos, tanda 4 (22:06–22:47): manejado por ADB
 
-| Modelo | Prompt | Ejec. | TTFT (ms) | tok/s | Calidad (0-2) | Notas |
+Francisco eligió que Claude manejara PocketPal a distancia por ADB, con el Wi-Fi encendido (el
+funcionamiento sin red ya quedó demostrado en las tandas 1 a 3). Cada vuelta, con
+`scratchpad/ronda.ps1`: fija los hilos en Settings, descarga el modelo ("Offload"), lo carga
+eligiéndolo en Benchmark, **comprueba `n_threads=N` en logcat antes de medir**, deja 60 s de
+reposo, lanza el benchmark (pp 512, tg 128, 3 repeticiones) y detecta el final leyendo el consumo
+de CPU del proceso (`/proc/PID/stat`), sin tocar la interfaz mientras mide.
+
+| Hilos | pp 512 (tok/s) | tg 128 (tok/s) | Duración | Núcleos ocupados | Carga (s) | Temperatura |
 | --- | --- | --- | --- | --- | --- | --- |
-| Qwen2.5-1.5B | P1 variador | 1 | — | — | — | — |
-| Qwen2.5-1.5B | P1 variador | 2 | — | — | — | — |
-| Qwen2.5-1.5B | P1 variador | 3 | — | — | — | — |
-| Qwen2.5-1.5B | P2 F0009 | 1 | — | — | — | — |
-| Qwen2.5-1.5B | P2 F0009 | 2 | — | — | — | — |
-| Qwen2.5-1.5B | P2 F0009 | 3 | — | — | — | — |
-| Qwen2.5-1.5B | P3 bus CC | 1 | — | — | — | — |
-| Qwen2.5-1.5B | P3 bus CC | 2 | — | — | — | — |
-| Qwen2.5-1.5B | P3 bus CC | 3 | — | — | — | — |
+| 2 | 22,82 | 8,02 | 1 min 55 s | ~3,0 | 5,9 | 33,9 → 34,0 °C |
+| 4 (control) | 26,42 | 7,86 | 1 min 47 s | ~5,0 | 8,7 | 33,9 → 33,8 °C |
+| **6** | **35,44** | **8,72** | **1 min 28 s** | ~6,7 | 6,1 | 33,6 → 33,3 °C |
+| **6 (réplica)** | **34,14** | **9,08** | **1 min 28 s** | ~6,6 | 9,6 | 33,7 → 33,6 °C |
+| 8 | 30,80 | 3,97 | 2 min 27 s | ~7,5 | 8,3 | 33,3 → 33,6 °C |
+
+**Vuelta descartada**: una primera de 6 hilos (22:10–22:15) dio pp 27,1 / tg 1,96 en 4 min 13 s
+porque el guion consultaba la interfaz con `uiautomator` cada 10 s durante el test ("could not get
+idle state" en bucle), y esa consulta gasta CPU del móvil. El control de 4 hilos con el método
+corregido (26,4 / 7,9) cuadra con la tanda 3 (24,6 / 6,8): el método nuevo no contamina.
+
+### Lectura de la tanda 4
+
+- **6 hilos es el óptimo**, y es justo el valor por defecto de PocketPal (80 % de los núcleos); el
+  plan había fijado 4. Media de las dos vueltas con 6 frente a 4 hilos: procesado del prompt
+  **34,8 tok/s (+32 %)** y generación **8,9 tok/s (+13 %)**. Las dos vueltas difieren menos de un 4 %.
+- **La generación está limitada por la memoria**: con 2 hilos (los dos A78) ya da 8,0 tok/s, casi
+  lo mismo que con 4 o 6.
+- **El procesado del prompt está limitado por el cálculo**: sube con los núcleos hasta 6
+  (22,8 → 26,4 → 34,8).
+- **8 hilos es contraproducente**: sin un núcleo libre para Android, cada interrupción de un hilo
+  hace esperar a los demás; la generación cae a la mitad (4,0) y el procesado también baja (30,8).
+- **Sin problema térmico**: 33–34 °C durante todo el barrido y sin tendencia a subir, lo que
+  confirma la impresión de Francisco.
+- PocketPal queda configurado con 6 hilos al terminar.
+
+## Prompts del protocolo (§5)
+
+El diseño previsto (un chat nuevo por ejecución, tres por prompt) **no se ejecutó tal cual**. Lo
+sustituyen:
+
+- **Tandas 1 y 2**: los tres prompts en modo avión, pero en un mismo chat (solo el primer P1 de
+  cada tanda va en chat nuevo). Dan la calidad (4/6) y los tiempos reales dentro del chat.
+- **Tandas 3 y 4**: el benchmark pp 512 / tg 128, que da velocidades limpias y comparables.
+
+Las tres repeticiones de cada prompt en la tanda 2 salieron idénticas palabra por palabra, así que
+repetirlas en chats nuevos no habría cambiado la nota de calidad.
 
 ## Carga del modelo
 
@@ -265,11 +301,56 @@ cálculo) puede mejorar con 6 u 8 hilos, o incluso con 2 si caen en los A78. La 
 | Qwen2.5-1.5B | recarga tras volver de segundo plano (tanda 1, 20:59:53) | 7,0 | logcat `RNLlama loadModel` → `Context initialized` |
 | Qwen2.5-1.5B | recarga con más presión de memoria (tanda 1, 21:04:18) | 16,6 | ídem |
 | Qwen2.5-1.5B | tras morir y reabrirse el proceso (21:10:57) | **10,2** | ídem; `n_threads=4`. Memoria después: PSS 1,39 GB, `MemAvailable` 1,19 GB |
-| Qwen2.5-1.5B | tras reinicio del móvil (frío) | — | — |
+| Qwen2.5-1.5B | cargas limpias del barrido de hilos (tanda 4, tras "Offload") | **5,9–9,6** | ídem; seis cargas: 6,4 · 8,7 · 6,1 · 8,3 · 5,9 · 9,6 |
+| Qwen2.5-1.5B | tras reinicio del móvil (frío) | **no se midió** | Reiniciar corta la depuración inalámbrica y obliga a reconectar; se dejó fuera |
 
-PocketPal no muestra el tiempo de carga; se mide con cronómetro o por las marcas de tiempo de
-logcat. La carga no usa red, así que se mide con el Wi-Fi encendido para poder leer logcat.
+PocketPal no muestra el tiempo de carga; se mide por las marcas de tiempo de logcat. La carga no
+usa red, así que se mide con el Wi-Fi encendido para poder leer logcat.
 
 ## Decisión según §3
 
-Pendiente.
+Configuración evaluada: **Qwen2.5-1.5B-Instruct Q4_K_M con 6 hilos** (el óptimo del barrido),
+contexto 2048, en PocketPal 1.17.3.
+
+| Criterio §3 | Medido | GO / reservas / NO-GO | Veredicto |
+| --- | --- | --- | --- |
+| Generación | 8,7–9,1 tok/s (benchmark, con 512 tokens de contexto) | ≥ 8 / 5–8 / < 5 | **GO** |
+| TTFT con ~150 tokens de prompt | ≈ 4,3 s (150 ÷ 34,8 tok/s de procesado); en chat, con 4 hilos: 2,8 s para 65 tokens | ≤ 2 s / 2–4 s / > 4 s | **NO-GO por 0,3 s** |
+| Carga del modelo | 5,9–9,6 s limpias; 10,2 s tras reabrir la app; 16,6 s con presión de memoria; en frío, sin medir | ≤ 10 s / 10–20 s / > 20 s | **GO con reservas** |
+| Español correcto y pasos numerados | 3/3 | 3/3 / 2/3 / ≤ 1/3 | **GO** (con la rúbrica fina de §5: 4/6, por debajo de 5/6) |
+| Sobrevive a minimizar 60 s | PocketPal descarga el modelo al salir y el sistema cierra el proceso en menos de un minuto | Sí / — / No | No evaluable con PocketPal: es un criterio de la app propia (paso 4.9) |
+| Memoria | pico ~1,4 GB; cabe en primer plano, a costa de cerrar otras apps | — | OK |
+| Temperatura | 33–34 °C estables | — | OK |
+
+### Lectura estricta del plan
+
+El TTFT cae en la franja de NO-GO por 0,3 s. La regla 1 manda pasar al siguiente modelo, pero
+Llama 3.2 1B ya suspendió la calidad en el PC (3/6), igual que Qwen2.5-0.5B (1/6) y el Q4_0 del
+propio Qwen 1.5B (3/6). **Ningún candidato cumple todos los criterios en este móvil.** Por la
+regla 2, eso lleva a replantear, y **la decisión es de Francisco**.
+
+### Recomendación: GO con reservas (regla 3)
+
+- Generación, memoria y temperatura están bien, y el modelo funciona sin red.
+- El único criterio en rojo es el tiempo hasta la primera palabra. Está medido (~35 tok/s de
+  procesado del prompt con 6 hilos) y es predecible, así que se puede diseñar alrededor.
+- No hay alternativa mejor en este móvil: los modelos más pequeños fallan en calidad.
+
+Condiciones para seguir, que pasan al plan 02:
+
+1. La app propia usa **6 hilos**, no 4 como decía el plan.
+2. El contexto de RAG se limita a **~250–300 tokens por pregunta** (≈ 7–9 s hasta la primera
+   palabra), y el prompt de sistema se procesa una vez y se reutiliza (caché KV).
+3. La respuesta se muestra en streaming, con un indicador mientras se procesa el manual.
+4. Los avisos de seguridad los pone la app, no el modelo: en P3 no mandó cortar tensión.
+5. Si con RAG el tiempo de respuesta no es aceptable para la demo, la salida es un móvil con i8mm,
+   validado con este mismo protocolo.
+
+### Lo que el plan pedía y no se hizo
+
+- La carga en frío tras reiniciar el móvil.
+- Los prompts en chats nuevos, tres por prompt (sustituidos por las tandas 1 y 2 y los benchmarks).
+- Medir Llama 3.2 1B y Qwen2.5-0.5B en el móvil (paso 2C.9): quedaron descartados antes, por
+  calidad en el PC.
+
+**Gate G1: pendiente de la decisión de Francisco.**
