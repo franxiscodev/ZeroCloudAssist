@@ -56,7 +56,7 @@ los 2,13 GB disponibles. Es el caso más exigente; si pasa aquí, pasa con mmap.
 | Reposo, todas las apps cerradas | — | 2,13 GB |
 | PocketPal abierto, **sin modelo** | 233 MB / 318 MB | 1,99 GB |
 | Modelo cargado, antes de generar | **1 416 MB / 1 449 MB** (Native Heap 1 245 MB = pesos; swap PSS 45 MB) | **1,40 GB** (MemFree 143 MB) |
-| Pico durante la generación | — | — |
+| Pico en el benchmark (pp 512 + tg 128) | ~1,3–1,4 GB (24,9–26,7 % de 5,3 GB según PocketPal) | — |
 
 Presupuesto previsto para Qwen2.5-1.5B: 1,12 GB de pesos en memoria anónima + ~59 MB de caché
 KV (28 capas × 2 cabezas KV × 128 dim × 2048 tokens × K y V en f16) + 150–300 MB de buffers de
@@ -207,13 +207,41 @@ repetición en P2; ver `informes/2026-09-13-calidad-pc.md`). **Queda descartado 
 demo.** Se mide su benchmark en el móvil solo como dato: si el procesado del prompt se multiplica,
 la vía (Q4_0, IQ4_NL u otro modelo) merece estudio en el plan 02.
 
-## Benchmark integrado (pp 512, tg 128, 3 repeticiones)
+## Benchmark integrado, tanda 3 (21:45–21:57): pp 512, tg 128, 3 repeticiones
 
-| Modelo | Hilos | pp (tok/s) | tg (tok/s) | Memoria pico | Notas |
-| --- | --- | --- | --- | --- | --- |
-| Qwen2.5-1.5B | 4 | — | — | — | — |
-| Qwen2.5-1.5B | 2 | — | — | — | — |
-| Qwen2.5-1.5B | 6 | — | — | — | — |
+Modo avión y Wi-Fi apagado (según Francisco). Resultados leídos de la pantalla Benchmark de
+PocketPal (lista completa recorrida con scroll y `uiautomator dump`) y cruzados con logcat.
+
+| Hora fin | Modelo | Hilos (pantalla y log) | pp 512 (tok/s) | tg 128 (tok/s) | Duración | Memoria pico |
+| --- | --- | --- | --- | --- | --- | --- |
+| 21:49:08 | Q4_K_M | 4 | 24,62 | 6,77 | 1 min 59 s | 24,9 % de 5,3 GB |
+| 21:52:06 | Q4_K_M | 4 | 24,14 | 6,66 | 2 min 2 s | 26,7 % |
+| 21:54:41 | Q4_K_M | 4 | 24,86 | 6,86 | 1 min 58 s | 26,7 % |
+| 21:57:09 | Q4_0 | 4 | 29,82 | 6,90 | 1 min 47 s | 26,7 % |
+
+Cargas según logcat, todas con `n_threads=4`: 21:45:19→21:45:25 (5,9 s), 21:46:44→21:46:53
+(8,9 s) y Q4_0 21:55:14→21:55:20 (5,8 s). Al reactivar la depuración inalámbrica: auto-release
+y recarga 21:58:11→21:58:21 (10,2 s).
+
+### Lectura de la tanda 3
+
+- **El barrido de hilos no se aplicó.** Las tres pruebas del Q4_K_M corrieron sobre la misma
+  carga (21:46:53). El cambio de hilos solo surte efecto al descargar el modelo ("Offload") y
+  volver a cargarlo, y entre ellas no hubo recarga. Valen como **tres repeticiones con 4 hilos**,
+  muy consistentes: pp 24,1–24,9 (mediana **24,6**), tg 6,7–6,9 (mediana **6,8**).
+- **~25 tok/s es el techo de procesado del prompt de la CPU con 4 hilos**, no un sobrecoste de la
+  app: con 512 tokens de golpe sale lo mismo que en el chat (18–28). Se descarta también la
+  hipótesis (a) desde este lado.
+- **Generación en el benchmark: 6,8 tok/s**, por debajo del chat (8,2) porque se mide con 512
+  tokens ya en el contexto. Es la cifra realista para preguntas con contexto de RAG.
+- **Q4_0: +21 % de procesado (29,8) y +2 % de generación.** La reorganización de pesos no
+  multiplica la velocidad en esta CPU sin i8mm. Con su pérdida de calidad (3/6), **descartado**.
+- **Memoria pico ~1,3–1,4 GB** (24,9–26,7 % de 5,3 GB).
+
+**Pendiente**: el barrido real de hilos. llama.cpp reparte el trabajo por igual entre hilos y
+con 4 hilos dos caen en los núcleos lentos A55, así que el procesado del prompt (limitado por
+cálculo) puede mejorar con 6 u 8 hilos, o incluso con 2 si caen en los A78. La generación
+(limitada por memoria) probablemente no.
 
 ## Prompts del protocolo (§5), un chat nuevo por ejecución
 
