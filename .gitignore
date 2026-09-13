@@ -1,0 +1,35 @@
+# Modelos y datos pesados: nunca al repo
+*.gguf
+models/
+manuales/*.pdf
+*.sqlite
+*.sqlite3
+*.db
+
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Android / Gradle
+android/build/
+android/**/build/
+android/.gradle/
+android/local.properties
+android/.idea/
+android/.cxx/
+android/**/.cxx/
+android/captures/
+*.apk
+*.aab
+*.iml
+
+# Python (tools/, plan 02)
+tools/.venv/
+__pycache__/
+*.pyc
+
+# Sistema y editor
+.DS_Store
+Thumbs.db
+.vscode/
