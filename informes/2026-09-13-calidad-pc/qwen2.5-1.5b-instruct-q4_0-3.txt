@@ -1,0 +1,20 @@
+MODELO: qwen2.5-1.5b-instruct-q4_0.gguf
+PROMPT: ¿Cómo mido la tensión del bus de continua del variador?
+----
+Para midir la tensión del bus de continua del variador, siga estos pasos:
+
+1. **Preparación**: Asegúrate de estar bien equipado con una mano limpia y un cuchillo de seguridad. Si es necesario, usa un cable de seguridad para proteger tu mano.
+
+2. **Desconectar**: Desconéctate el variador de la fuente de alimentación principal. Esto se puede hacer con un interruptor o con un cable de alimentación alternativa.
+
+3. **Apagar**: Apágalo completamente para asegurar que no haya corriente eléctrica en el circuito.
+
+4. **Mide la tensión**: Utiliza un multímetro para medir la tensión del bus de continua. Si es necesario, utiliza un cable de seguridad para proteger tu mano.
+
+5. **Verificación**: Verifica que el multímetro esté correctamente configurado para medir la tensión de la
+
+----
+0.11.143.422 I common_perf_print:        load time =     736.91 ms
+0.11.143.424 I common_perf_print: prompt eval time =     291.68 ms /    70 tokens (    4.17 ms per token,   239.99 tokens per second)
+0.11.143.426 I common_perf_print:        eval time =    9665.95 ms /   199 runs   (   48.57 ms per token,    20.59 tokens per second)
+0.11.143.428 I common_perf_print: unaccounted time =      35.75 ms /   0.4 %      (total - sampling - prompt eval - eval) / (total)

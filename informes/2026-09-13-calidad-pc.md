@@ -42,6 +42,25 @@ medir en el A53. Velocidad en PC es irrelevante para la decisión; se anota solo
 - P1: confunde variador con control de generación eléctrica.
 - P2 y P3: bucle de repetición hasta agotar tokens. Inutilizable para esto.
 
+### Qwen2.5-1.5B Q4_0 (añadido después, 21:40)
+
+Se probó tras medir en el A53, porque el procesado del prompt resultó ser el cuello de botella y
+la reorganización de pesos de llama.cpp en ARM favorece Q4_0. Mismo modelo y misma fuente.
+Comando: `bash tools/calidad-pc.sh /c/tools/llama.cpp qwen2.5-1.5b-instruct-q4_0.gguf`.
+
+| Prompt | Nota | Motivo |
+| --- | --- | --- |
+| P1 | 2 | Definición correcta; ejemplos de sectores algo forzados pero plausibles |
+| P2 | 0 | **Bucle de repetición**: "Comprueba si el variador está en el modo de control de temperatura" siete veces hasta agotar tokens |
+| P3 | 1 | Manda desconectar y apagar antes de medir, pero inventa ("cuchillo de seguridad", "mano limpia") y tiene erratas ("midir") |
+
+Total **3/6: no pasa**. Frente al Q4_K_M (5/6) pierde calidad claramente.
+
+| Velocidad en PC | Q4_K_M | Q4_0 |
+| --- | --- | --- |
+| Procesado del prompt (tok/s) | 200–245 | 240–260 |
+| Generación (tok/s) | 15–17,5 | 20–20,6 |
+
 ## Velocidad en PC (solo referencia, no cuenta para go/no-go)
 
 | Modelo | Carga (ms) | Generación (tok/s) |

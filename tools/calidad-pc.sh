@@ -26,6 +26,10 @@ MODELS=(
   qwen2.5-0.5b-instruct-q4_k_m.gguf
 )
 
+# Si tras la ruta de llama.cpp se pasan ficheros de modelo, se prueban solo esos:
+#   bash tools/calidad-pc.sh /c/tools/llama.cpp qwen2.5-1.5b-instruct-q4_0.gguf
+if [ "$#" -gt 1 ]; then shift; MODELS=("$@"); fi
+
 for m in "${MODELS[@]}"; do
   tag="${m%.gguf}"
   for i in "${!PROMPTS[@]}"; do

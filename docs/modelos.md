@@ -8,6 +8,11 @@ Descargados el 2026-09-13 en `models/` (carpeta ignorada por git). Verificar con
 | Qwen2.5-1.5B-Instruct Q4_K_M | `qwen2.5-1.5b-instruct-q4_k_m.gguf` | 1 117 320 736 | `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` |
 | Llama 3.2 1B Instruct Q4_K_M | `Llama-3.2-1B-Instruct-Q4_K_M.gguf` | 807 694 368 | `3f5a22426976ab26cfe84dba63c1d08391717abb1af893e10f1b2968d862dcc1` |
 | Qwen2.5-0.5B-Instruct Q4_K_M | `qwen2.5-0.5b-instruct-q4_k_m.gguf` | 491 400 032 | `74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db` |
+| Qwen2.5-1.5B-Instruct **Q4_0** | `qwen2.5-1.5b-instruct-q4_0.gguf` | 1 066 227 232 | `dcd819ff094852c38faba6873d8ff0c9d51eadb2844539e52042ae5d647bbfdb` |
+
+El Q4_0 se añadió tras la medición en el A53: el procesado del prompt resultó ser el cuello de
+botella, y la reorganización de pesos ("weight repacking") de llama.cpp en ARM está pensada
+sobre todo para Q4_0. Mismo modelo y misma fuente oficial que el Q4_K_M.
 
 ## Origen
 
