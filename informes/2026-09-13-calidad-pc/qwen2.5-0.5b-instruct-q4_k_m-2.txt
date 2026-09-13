@@ -1,0 +1,19 @@
+MODELO: qwen2.5-0.5b-instruct-q4_k_m.gguf
+PROMPT: Un variador ABB muestra el fallo F0009 y el armario está muy caliente. ¿Qué reviso?
+----
+1. Verifica si el armario está completamente cubierto y no está expuesto a la luz.
+2. Verifica si el armario está en un lugar seguro y no está en contacto con la luz.
+3. Verifica si el armario está en un lugar cómodo y no está en contacto con la luz.
+4. Verifica si el armario está en un lugar seguro y no está en contacto con la luz.
+5. Verifica si el armario está en un lugar seguro y no está en contacto con la luz.
+6. Verifica si el armario está en un lugar seguro y no está en contacto con la luz.
+7. Verifica si el armario está en un lugar seguro y no está en contacto con la luz.
+8. Verifica si el armario está en un lugar seguro y no está en contacto con la luz.
+9. Verifica si el armario está en un lugar seguro y no está en contacto con la luz.
+1
+
+----
+0.06.391.658 I common_perf_print:        load time =     387.01 ms
+0.06.391.661 I common_perf_print: prompt eval time =     269.83 ms /    82 tokens (    3.29 ms per token,   303.89 tokens per second)
+0.06.391.663 I common_perf_print:        eval time =    5075.34 ms /   199 runs   (   25.50 ms per token,    39.21 tokens per second)
+0.06.391.665 I common_perf_print: unaccounted time =      45.40 ms /   0.8 %      (total - sampling - prompt eval - eval) / (total)

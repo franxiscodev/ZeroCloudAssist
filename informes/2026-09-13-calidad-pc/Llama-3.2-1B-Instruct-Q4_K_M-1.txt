@@ -1,0 +1,20 @@
+MODELO: Llama-3.2-1B-Instruct-Q4_K_M.gguf
+PROMPT: ¿Qué es un variador de frecuencia?
+----
+**¿Qué es un variador de frecuencia?**
+
+Un variador de frecuencia es un dispositivo que modifica la frecuencia de una corriente eléctrica. Su función principal es proporcionar una frecuencia más alta o más baja que la del sistema eléctrico convencional, lo que puede ser necesario en aplicaciones industriales, de energía eléctrica o de otros sectores donde la frecuencia es crítica.
+
+**Tipos de variadores de frecuencia**
+
+Existen varios tipos de variadores de frecuencia, incluyendo:
+
+1. **Variadores de frecuencia de alta frecuencia**: utilizan una frecuencia de hasta 10 kHz para controlar la velocidad de un motor o un sistema eléctrico.
+2. **Variadores de frecuencia de baja frecuencia**: utilizan una frecuencia de hasta 100 kHz para controlar la velocidad de un motor o un sistema eléctrico.
+3. **Variadores de frecuencia
+
+----
+0.13.597.517 I common_perf_print:        load time =    1280.02 ms
+0.13.597.520 I common_perf_print: prompt eval time =     279.01 ms /    88 tokens (    3.17 ms per token,   315.40 tokens per second)
+0.13.597.522 I common_perf_print:        eval time =   11104.17 ms /   199 runs   (   55.80 ms per token,    17.92 tokens per second)
+0.13.597.525 I common_perf_print: unaccounted time =      44.54 ms /   0.4 %      (total - sampling - prompt eval - eval) / (total)

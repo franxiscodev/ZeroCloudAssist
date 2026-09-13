@@ -1,0 +1,14 @@
+MODELO: qwen2.5-0.5b-instruct-q4_k_m.gguf
+PROMPT: ¿Cómo mido la tensión del bus de continua del variador?
+----
+Para medir la tensión del bus de continua del variador, sigue estos pasos:
+
+1. **Inicia el variador**: Abre el variador y selecciona el modo de control que deseas.
+
+2. **Aplica la corriente**: Aplica la corriente a la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente de la corriente
+
+----
+0.06.364.049 I common_perf_print:        load time =     411.97 ms
+0.06.364.051 I common_perf_print: prompt eval time =     176.10 ms /    70 tokens (    2.52 ms per token,   397.50 tokens per second)
+0.06.364.052 I common_perf_print:        eval time =    5190.43 ms /   199 runs   (   26.08 ms per token,    38.34 tokens per second)
+0.06.364.054 I common_perf_print: unaccounted time =      39.58 ms /   0.7 %      (total - sampling - prompt eval - eval) / (total)

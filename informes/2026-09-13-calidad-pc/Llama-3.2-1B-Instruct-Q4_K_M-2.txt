@@ -1,0 +1,19 @@
+MODELO: Llama-3.2-1B-Instruct-Q4_K_M.gguf
+PROMPT: Un variador ABB muestra el fallo F0009 y el armario está muy caliente. ¿Qué reviso?
+----
+**Revisión de Fallo F0009 y Calor del Armario**
+
+1. **Verificar la fuente de alimentación**: Antes de revisar el variador, asegúrate de que la fuente de alimentación esté funcionando correctamente. Verifica que el variador esté conectado a la red eléctrica y que el voltaje sea adecuado para el tipo de variador.
+
+2. **Revisar el variador**: Si el variador está funcionando correctamente, revisa los siguientes componentes:
+ * El variador ABB, asegúrate de que esté correctamente instalado y conectado a la red eléctrica.
+ * Los cables, asegúrate de que estén correctamente conectados a los componentes del variador.
+ * Los sensores, asegúrate de que estén correctamente conectados a los componentes del variador.
+
+3. **Revisar el armario**: Si el variador
+
+----
+0.12.672.468 I common_perf_print:        load time =     931.11 ms
+0.12.672.471 I common_perf_print: prompt eval time =     323.48 ms /   103 tokens (    3.14 ms per token,   318.42 tokens per second)
+0.12.672.473 I common_perf_print:        eval time =   10661.43 ms /   199 runs   (   53.58 ms per token,    18.67 tokens per second)
+0.12.672.475 I common_perf_print: unaccounted time =      46.06 ms /   0.4 %      (total - sampling - prompt eval - eval) / (total)
