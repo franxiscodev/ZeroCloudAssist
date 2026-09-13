@@ -99,6 +99,11 @@ discriminar con el benchmark (pp 512): (a) sobrecoste de la app o del motor por 
 (b) hilos repartidos en los núcleos lentos A55, (c) procesado del prompt lento en esta CPU sin
 i8mm.
 
+> **Corregido en la tanda 2.** Sin recargas del modelo, el procesado del prompt sale
+> proporcional a los tokens (~35–55 ms/token, 18–28 tok/s) y el "coste fijo de ~3 s" desaparece:
+> era efecto de las recargas. Se mantiene el hallazgo principal (el procesado del prompt es el
+> cuello de botella); se descarta la hipótesis (a).
+
 **Por qué importa para el plan 02 (RAG).** Cada pregunta llevará 500–1 000 tokens de
 fragmentos del manual. Con 14–30 tok/s de procesado serían 20–35 s hasta la primera palabra.
 El criterio de TTFT del plan (≤ 2 s con ~150 tokens) está pensado para el chat sin RAG; con RAG
@@ -130,6 +135,77 @@ el procesado del prompt será el factor que decida.
 
 **Regla para la tanda 2**: no salir de PocketPal en ningún momento. Tras cada captura, cerrar la
 barra de Samsung tocando la propia conversación, nunca la miniatura.
+
+## Tanda 2 (desde 21:12): observaciones de Francisco
+
+- **Temperatura**: no notó que el móvil se calentara en ningún momento de las pruebas.
+- Durante la tanda apareció el aviso de PocketPal *"This conversation is getting long and may
+  soon run out of room"* (`contextWarning`). Solo sale cuando un mismo chat acumula contexto
+  cerca del límite de 2048 tokens, lo que sugiere que alguna ejecución no fue en un chat nuevo.
+  Se verifica con la exportación agrupada por sesión.
+
+## Tanda 2 (21:19–21:25): válida con una desviación
+
+Modo avión confirmado en las capturas (icono del avión), 4 hilos, **sin recargas ni salidas a
+segundo plano** entre 21:12 y 21:31 según logcat. Desviación: **las 9 ejecuciones fueron en un
+único chat** (la exportación muestra una sesión con 18 mensajes). Consecuencias: cada turno solo
+procesa los tokens nuevos (la caché KV reutiliza la conversación) y el contexto crece hasta el
+83 % de 2048 al final, lo que frena las dos fases. Copia: `tanda2-export.json`.
+
+| # | Hora | Prompt | `prompt_n` | Procesado (tok/s) | `predicted_n` | Generación (tok/s) | TTFT (ms) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 21:19:15 | P1 | 65 | 24,1 | 67 | 8,16 | 2 831 |
+| 2 | 21:19:49 | P2 | 38 | 28,0 | 199 | 7,90 | 1 456 |
+| 3 | 21:20:33 | P3 | 26 | 24,5 | 199 | 8,77 | 1 152 |
+| 4 | 21:21:28 | P1 | 68 | 25,3 | 67 | 7,49 | 2 819 |
+| 5 | 21:21:57 | P2 | 38 | 25,0 | 198 | 7,47 | 1 621 |
+| 6 | 21:22:45 | P3 | 25 | 20,5 | 199 | 7,45 | 1 331 |
+| 7 | 21:23:29 | P1 | 21 | 18,1 | 67 | 7,10 | 1 318 |
+| 8 | 21:24:01 | P2 | 38 | 18,5 | 198 | 7,23 | 2 239 |
+| 9 | 21:24:59 | P3 | 25 | 17,8 | 199 | 7,34 | 1 590 |
+
+### Lectura de la tanda 2
+
+- **Procesado del prompt: ~35–55 ms por token (18–28 tok/s), proporcional a los tokens.** Sin
+  recargas desaparece el "coste fijo de 3 s" que parecía haber en la tanda 1: aquel dato estaba
+  contaminado por las recargas del modelo.
+- **Generación: 8,2–8,8 tok/s con el contexto corto, 7,1–7,5 tok/s con ~1 700 tokens de
+  contexto.** Mediana de las 9: 7,47. Referencia con chat recién abierto: 8,16 (tanda 2, #1) y
+  8,19 (tanda 1, P1).
+- **TTFT de una pregunta en chat nuevo** (65 tokens de prompt): 2,8 s. Extrapolando a ~150 tokens,
+  la referencia del criterio §3, serían ~4–6 s.
+
+### Calidad de la tanda 2 (rúbrica §5, sobre el texto completo exportado)
+
+| Prompt | Nota | Motivo |
+| --- | --- | --- |
+| P1 | 2 | Definición correcta y breve |
+| P2 | 1 | Pasos numerados pero genéricos: no menciona ventilación ni temperatura ambiente (lo que indica F0009) y sugiere desmontar el motor sin cortar tensión |
+| P3 | 1 | Menciona el riesgo, pero no manda cortar tensión ni esperar la descarga; "mantén el multímetro un minuto" no tiene sentido |
+
+Total **4/6** (el umbral es 5/6; en el PC el mismo modelo sacó 5/6). Con el criterio de §3
+("español correcto y pasos numerados cuando toca") pasa 3/3. Las tres repeticiones de cada prompt
+son idénticas palabra por palabra (temperatura 0,2 y mismo prefijo en caché): repetir no aporta
+información de calidad. Sin el manual, el contenido técnico es genérico, como se esperaba; el
+contenido correcto tiene que venir del RAG, y los avisos de seguridad de la lógica de la app.
+
+**Benchmark: falló.** 21:27:33, `llama_decode() failed during benchmark, n_batch=512 ret=-1`,
+en 86 ms y sin resultados. Probable causa: se lanzó con el contexto del chat casi lleno (83 %) y
+512 tokens más no cabían en 2048. Se repite con el modelo recién cargado.
+
+**Después de la tanda**: al ir a Ajustes para reactivar la depuración inalámbrica, dos
+auto-release y recargas (6,4 s cada una: 21:31:40.8→21:31:47.2 y 21:32:45.5→21:32:51.8), y el
+proceso murió en segundo plano a las 21:33:18 (`am_proc_died`, oom_adj 900), ~28 s después de
+salir. Estado final: batería 83 %, 35,5 °C; Francisco no notó calentamiento.
+
+## Q4_0 como palanca contra el procesado lento
+
+Qwen2.5-1.5B en Q4_0 (1,07 GB, misma fuente oficial) se descargó y se copió al móvil porque la
+reorganización de pesos de llama.cpp en ARM está pensada sobre todo para Q4_0 y podría acelerar
+el procesado del prompt. En el PC pierde calidad claramente (3/6 frente a 5/6, con un bucle de
+repetición en P2; ver `informes/2026-09-13-calidad-pc.md`). **Queda descartado como modelo de la
+demo.** Se mide su benchmark en el móvil solo como dato: si el procesado del prompt se multiplica,
+la vía (Q4_0, IQ4_NL u otro modelo) merece estudio en el plan 02.
 
 ## Benchmark integrado (pp 512, tg 128, 3 repeticiones)
 

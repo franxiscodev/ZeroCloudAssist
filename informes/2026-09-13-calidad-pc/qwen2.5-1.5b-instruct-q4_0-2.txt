@@ -1,0 +1,20 @@
+MODELO: qwen2.5-1.5b-instruct-q4_0.gguf
+PROMPT: Un variador ABB muestra el fallo F0009 y el armario está muy caliente. ¿Qué reviso?
+----
+1. Verifica si el variador está conectado correctamente a la fuente de alimentación.
+2. Comprueba si el variador está en el modo correcto para la tarea que está realizando.
+3. Revisa si el variador está en el modo de protección.
+4. Comprueba si el variador está en el modo de control de temperatura.
+5. Verifica si el variador está en el modo de control de temperatura.
+6. Comprueba si el variador está en el modo de control de temperatura.
+7. Comprueba si el variador está en el modo de control de temperatura.
+8. Comprueba si el variador está en el modo de control de temperatura.
+9. Comprueba si el variador está en el modo de control de temperatura.
+10. Comprueba si el variador está en el modo de control de temperatura.
+11. Comprueba si el variador está en el modo de control
+
+----
+0.11.594.384 I common_perf_print:        load time =     815.48 ms
+0.11.594.386 I common_perf_print: prompt eval time =     326.42 ms /    82 tokens (    3.98 ms per token,   251.21 tokens per second)
+0.11.594.388 I common_perf_print:        eval time =    9980.53 ms /   199 runs   (   50.15 ms per token,    19.94 tokens per second)
+0.11.594.389 I common_perf_print: unaccounted time =      39.83 ms /   0.4 %      (total - sampling - prompt eval - eval) / (total)
