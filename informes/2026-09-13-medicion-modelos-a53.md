@@ -80,6 +80,30 @@ Modo avión, 4 hilos. Solo se hicieron 3 de las 9 ejecuciones, **las tres en el 
 El log confirma que el system prompt se aplicó: los tokens del prompt empiezan por
 `<|im_start|>system` y el texto del protocolo.
 
+### Tiempos exactos (exportación JSON de PocketPal)
+
+"Export current session" guarda en Descargas los metadatos de cada respuesta, con los
+`timings` de llama.rn completos. Copia en
+`informes/2026-09-13-medicion-modelos-a53/tanda1-export.json`.
+
+| Prompt | `prompt_n` | `prompt_ms` | Procesado (tok/s) | `predicted_n` | Generación (tok/s) | TTFT (ms) |
+| --- | --- | --- | --- | --- | --- | --- |
+| P1 | 65 | 4 727 | 13,8 | 91 (fin natural) | 8,19 | 4 883 |
+| P2 | 195 (conversación entera, tras la recarga) | 6 518 | 29,9 | 199 (límite) | 8,96 | 6 670 |
+| P3 | 26 (reutiliza la caché KV) | 3 096 | 8,4 | 199 (límite) | 8,08 | 3 522 |
+
+**Hallazgo principal de la tanda: el cuello de botella es el procesado del prompt, no la
+generación.** El tiempo no es proporcional a los tokens: 26 tokens cuestan 3,1 s y 195 cuestan
+6,5 s. Eso sugiere un coste fijo de ~3 s por mensaje más ~14–20 ms por token. Hipótesis a
+discriminar con el benchmark (pp 512): (a) sobrecoste de la app o del motor por petición,
+(b) hilos repartidos en los núcleos lentos A55, (c) procesado del prompt lento en esta CPU sin
+i8mm.
+
+**Por qué importa para el plan 02 (RAG).** Cada pregunta llevará 500–1 000 tokens de
+fragmentos del manual. Con 14–30 tok/s de procesado serían 20–35 s hasta la primera palabra.
+El criterio de TTFT del plan (≤ 2 s con ~150 tokens) está pensado para el chat sin RAG; con RAG
+el procesado del prompt será el factor que decida.
+
 ### Qué pasó (logcat, eventos del sistema)
 
 | Hora | Evento | Fuente |
@@ -134,6 +158,9 @@ barra de Samsung tocando la propia conversación, nunca la miniatura.
 | Modelo | Condición | Tiempo (s) | Cómo se midió |
 | --- | --- | --- | --- |
 | Qwen2.5-1.5B | primera carga tras importar (templada: fichero recién copiado, probablemente en caché) | **~9,0** | logcat `RNLlama`: `loadModel` 20:45:48.496 → `Context initialized` 20:45:57.465. A ojo pareció "un segundo o menos": la pantalla del chat aparece antes de que termine la carga |
+| Qwen2.5-1.5B | recarga tras volver de segundo plano (tanda 1, 20:59:53) | 7,0 | logcat `RNLlama loadModel` → `Context initialized` |
+| Qwen2.5-1.5B | recarga con más presión de memoria (tanda 1, 21:04:18) | 16,6 | ídem |
+| Qwen2.5-1.5B | tras morir y reabrirse el proceso (21:10:57) | **10,2** | ídem; `n_threads=4`. Memoria después: PSS 1,39 GB, `MemAvailable` 1,19 GB |
 | Qwen2.5-1.5B | tras reinicio del móvil (frío) | — | — |
 
 PocketPal no muestra el tiempo de carga; se mide con cronómetro o por las marcas de tiempo de

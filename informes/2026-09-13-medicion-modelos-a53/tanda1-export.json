@@ -1,0 +1,184 @@
+{
+  "id": "oK1Ck5cvdNTtLUoT",
+  "title": "¿Qué es un variador de frecuencia?",
+  "date": "2026-09-13T18:58:07.786Z",
+  "messages": [
+    {
+      "id": "PIZxDuZKAPcntzII",
+      "author": "h3o3lc5xj",
+      "text": "Para medir la tensión del bus de continua del variador, sigue estos pasos:\n\n1. **Asegúrate de que estés en un entorno seguro**: Si hay riesgo eléctrico, asegúrate de que estés en un entorno seguro y que no estés en contacto directo con cualquier elemento eléctrico.\n\n2. **Busca un multímetro**: Un multímetro es un instrumento que permite medir la tensión, corriente y frecuencia de un circuito eléctrico. Si no tienes uno, puedes comprar uno en una tienda de electrónica o en línea.\n\n3. **Ajusta el multímetro**: Ajusta el multímetro para que mida voltaje. Si es un multímetro digital, asegúrate de que el modo de medición esté en voltaje.\n\n4. **Asegúrate de que el variador esté en posición correcta**: Si",
+      "type": "assistant_turn",
+      "metadata": {
+        "contextId": "30372",
+        "conversationId": "fy3gas9k9",
+        "multimodal": false,
+        "steps": [
+          {
+            "partial": false,
+            "content": "Para medir la tensión del bus de continua del variador, sigue estos pasos:\n\n1. **Asegúrate de que estés en un entorno seguro**: Si hay riesgo eléctrico, asegúrate de que estés en un entorno seguro y que no estés en contacto directo con cualquier elemento eléctrico.\n\n2. **Busca un multímetro**: Un multímetro es un instrumento que permite medir la tensión, corriente y frecuencia de un circuito eléctrico. Si no tienes uno, puedes comprar uno en una tienda de electrónica o en línea.\n\n3. **Ajusta el multímetro**: Ajusta el multímetro para que mida voltaje. Si es un multímetro digital, asegúrate de que el modo de medición esté en voltaje.\n\n4. **Asegúrate de que el variador esté en posición correcta**: Si"
+          }
+        ],
+        "timings": {
+          "cache_n": 619,
+          "prompt_n": 26,
+          "prompt_ms": 3095.753,
+          "prompt_per_token_ms": 119.06742307692308,
+          "prompt_per_second": 8.3986028601119,
+          "predicted_n": 199,
+          "predicted_ms": 24621.051,
+          "predicted_per_token_ms": 123.7238743718593,
+          "predicted_per_second": 8.082514430435973,
+          "time_to_first_token_ms": 3522
+        },
+        "copyable": true,
+        "completionResult": {
+          "content": "Para medir la tensión del bus de continua del variador, sigue estos pasos:\n\n1. **Asegúrate de que estés en un entorno seguro**: Si hay riesgo eléctrico, asegúrate de que estés en un entorno seguro y que no estés en contacto directo con cualquier elemento eléctrico.\n\n2. **Busca un multímetro**: Un multímetro es un instrumento que permite medir la tensión, corriente y frecuencia de un circuito eléctrico. Si no tienes uno, puedes comprar uno en una tienda de electrónica o en línea.\n\n3. **Ajusta el multímetro**: Ajusta el multímetro para que mida voltaje. Si es un multímetro digital, asegúrate de que el modo de medición esté en voltaje.\n\n4. **Asegúrate de que el variador esté en posición correcta**: Si",
+          "used": 619,
+          "contextFull": false,
+          "tokensPredicted": 199,
+          "isRemote": false
+        }
+      },
+      "createdAt": 1789326175202
+    },
+    {
+      "id": "sQFKPxbhqeS3PdGL",
+      "author": "y9d7f8pgn",
+      "text": "¿Cómo mido la tensión del bus de continua del variador?",
+      "type": "text",
+      "metadata": {
+        "contextId": "30372",
+        "conversationId": "fy3gas9k9",
+        "copyable": true,
+        "multimodal": false
+      },
+      "createdAt": 1789326174892
+    },
+    {
+      "id": "x98C0rk0Ww8MVhmp",
+      "author": "h3o3lc5xj",
+      "text": "Si un variador ABB muestra el fallo F0009 y el armario está muy caliente, hay varias cosas que debes revisar:\n\n1. **Verifica la temperatura del armario**: Si el armario está muy caliente, es posible que haya un problema con el motor o el variador. Asegúrate de que el armario no esté en contacto directo con el suelo o cualquier otro elemento que pueda causar un calor excesivo.\n\n2. **Revisa el variador**: Si el variador ABB muestra el fallo F0009, es probable que haya un problema con el motor o el variador. Asegúrate de que el motor esté en posición correcta (normal o reversa) y que no haya cables o cables de alimentación dañados.\n\n3. **Revisa la alimentación**: Asegúrate de que la alimentación está correcta y que no haya cables dañ",
+      "type": "assistant_turn",
+      "metadata": {
+        "contextId": "30372",
+        "conversationId": "fy3gas9k9",
+        "multimodal": false,
+        "steps": [
+          {
+            "partial": false,
+            "content": "Si un variador ABB muestra el fallo F0009 y el armario está muy caliente, hay varias cosas que debes revisar:\n\n1. **Verifica la temperatura del armario**: Si el armario está muy caliente, es posible que haya un problema con el motor o el variador. Asegúrate de que el armario no esté en contacto directo con el suelo o cualquier otro elemento que pueda causar un calor excesivo.\n\n2. **Revisa el variador**: Si el variador ABB muestra el fallo F0009, es probable que haya un problema con el motor o el variador. Asegúrate de que el motor esté en posición correcta (normal o reversa) y que no haya cables o cables de alimentación dañados.\n\n3. **Revisa la alimentación**: Asegúrate de que la alimentación está correcta y que no haya cables dañ"
+          }
+        ],
+        "timings": {
+          "cache_n": 394,
+          "prompt_n": 195,
+          "prompt_ms": 6517.637,
+          "prompt_per_token_ms": 33.42377948717949,
+          "prompt_per_second": 29.918818737527115,
+          "predicted_n": 199,
+          "predicted_ms": 22204.539999999997,
+          "predicted_per_token_ms": 111.58060301507537,
+          "predicted_per_second": 8.962131167770195,
+          "time_to_first_token_ms": 6670
+        },
+        "copyable": true,
+        "completionResult": {
+          "content": "Si un variador ABB muestra el fallo F0009 y el armario está muy caliente, hay varias cosas que debes revisar:\n\n1. **Verifica la temperatura del armario**: Si el armario está muy caliente, es posible que haya un problema con el motor o el variador. Asegúrate de que el armario no esté en contacto directo con el suelo o cualquier otro elemento que pueda causar un calor excesivo.\n\n2. **Revisa el variador**: Si el variador ABB muestra el fallo F0009, es probable que haya un problema con el motor o el variador. Asegúrate de que el motor esté en posición correcta (normal o reversa) y que no haya cables o cables de alimentación dañados.\n\n3. **Revisa la alimentación**: Asegúrate de que la alimentación está correcta y que no haya cables dañ",
+          "used": 394,
+          "contextFull": false,
+          "tokensPredicted": 199,
+          "isRemote": false
+        }
+      },
+      "createdAt": 1789326085301
+    },
+    {
+      "id": "GMJIQTpeVGCNokBa",
+      "author": "y9d7f8pgn",
+      "text": "Un variador ABB muestra el fallo F0009 y el armario está muy caliente.  ¿Qué reviso?",
+      "type": "text",
+      "metadata": {
+        "contextId": "30372",
+        "conversationId": "fy3gas9k9",
+        "copyable": true,
+        "multimodal": false
+      },
+      "createdAt": 1789326085176
+    },
+    {
+      "id": "fhOd3tgmDgceAcJV",
+      "author": "h3o3lc5xj",
+      "text": "Un variador de frecuencia es un dispositivo que controla la frecuencia de una corriente eléctrica. Esto permite ajustar la velocidad de un motor o un dispositivo eléctrico en funcionamiento. Los variadores de frecuencia son muy utilizados en aplicaciones industriales para controlar la velocidad de motores eléctricos, controlar la velocidad de engranajes en maquinaria, y en sistemas de control de temperatura.",
+      "type": "assistant_turn",
+      "metadata": {
+        "contextId": "75807",
+        "conversationId": "fy3gas9k9",
+        "multimodal": false,
+        "steps": [
+          {
+            "partial": false,
+            "content": "Un variador de frecuencia es un dispositivo que controla la frecuencia de una corriente eléctrica. Esto permite ajustar la velocidad de un motor o un dispositivo eléctrico en funcionamiento. Los variadores de frecuencia son muy utilizados en aplicaciones industriales para controlar la velocidad de motores eléctricos, controlar la velocidad de engranajes en maquinaria, y en sistemas de control de temperatura."
+          }
+        ],
+        "timings": {
+          "cache_n": 157,
+          "prompt_n": 65,
+          "prompt_ms": 4726.9130000000005,
+          "prompt_per_token_ms": 72.72173846153846,
+          "prompt_per_second": 13.751046401742531,
+          "predicted_n": 91,
+          "predicted_ms": 11114.202,
+          "predicted_per_token_ms": 122.1340879120879,
+          "predicted_per_second": 8.187722339399627,
+          "time_to_first_token_ms": 4883
+        },
+        "copyable": true,
+        "completionResult": {
+          "content": "Un variador de frecuencia es un dispositivo que controla la frecuencia de una corriente eléctrica. Esto permite ajustar la velocidad de un motor o un dispositivo eléctrico en funcionamiento. Los variadores de frecuencia son muy utilizados en aplicaciones industriales para controlar la velocidad de motores eléctricos, controlar la velocidad de engranajes en maquinaria, y en sistemas de control de temperatura.",
+          "used": 156,
+          "contextFull": false,
+          "tokensPredicted": 91,
+          "isRemote": false
+        }
+      },
+      "createdAt": 1789325887935
+    },
+    {
+      "id": "kKOaYtFv72zniGiJ",
+      "author": "y9d7f8pgn",
+      "text": "¿Qué es un variador de frecuencia?",
+      "type": "text",
+      "metadata": {
+        "contextId": "75807",
+        "conversationId": "fy3gas9k9",
+        "copyable": true,
+        "multimodal": false
+      },
+      "createdAt": 1789325887783
+    }
+  ],
+  "completionSettings": {
+    "version": 4,
+    "include_thinking_in_context": true,
+    "n_predict": 200,
+    "temperature": 0.2,
+    "top_k": 40,
+    "top_p": 0.95,
+    "min_p": 0.05,
+    "xtc_threshold": 0.1,
+    "xtc_probability": 0,
+    "typical_p": 1,
+    "penalty_last_n": 64,
+    "penalty_repeat": 1,
+    "penalty_freq": 0,
+    "penalty_present": 0,
+    "mirostat": 0,
+    "mirostat_tau": 5,
+    "mirostat_eta": 0.1,
+    "seed": -1,
+    "n_probs": 0,
+    "jinja": true,
+    "enable_thinking": true
+  },
+  "activePalId": null
+}
