@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(adb *)",
+      "Bash(./gradlew *)",
+      "Bash(gradlew *)",
+      "Bash(winget *)",
+      "PowerShell(adb *)",
+      "PowerShell(.\\gradlew *)",
+      "PowerShell(gradlew *)",
+      "PowerShell(winget *)"
+    ]
+  }
+}
