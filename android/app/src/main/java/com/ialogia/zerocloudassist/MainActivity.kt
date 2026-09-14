@@ -111,7 +111,7 @@ private fun AssistantScreen() {
                 onClick = { if (Assistant.generate(prompt)) prompt = "" },
                 enabled = Assistant.ready && !Assistant.generating && prompt.isNotBlank(),
             ) {
-                Text("Generar")
+                Text("Preguntar")
             }
         }
     }
@@ -121,6 +121,15 @@ private fun AssistantScreen() {
 private fun TurnView(turn: Entry.Turn) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(turn.question, fontWeight = FontWeight.Bold)
+        // Mínimo de la etapa 3: la tarjeta de seguridad y los chips de fuentes llegan en la etapa 4.
+        turn.safety?.let { Text("⚠ ${it.text} (p. ${it.page})", style = MaterialTheme.typography.bodySmall) }
+        if (turn.sources.isNotEmpty()) {
+            Text(
+                "Fuentes: " + turn.sources.joinToString(" · ") { "p. ${it.page}" },
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
         if (turn.answer.isNotEmpty()) Text(turn.answer)
         if (turn.interrupted) {
             Text(
