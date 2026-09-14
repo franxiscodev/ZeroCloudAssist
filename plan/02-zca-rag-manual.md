@@ -276,7 +276,7 @@ jobs:
 | 1.6 | Términos literales (**TDD**) | `terminos.py` con la tabla de casos de abajo | pytest verde |
 | 1.7 | Vectorizar | `vectorizar.py`: cliente HTTP de `llama-server` en `127.0.0.1:8090`; **endpoint y forma de la respuesta según `tools/server/README.md` del tag b10941**, no de memoria. Normaliza L2 siempre en Python. Test TDD de `normalizar()`; test `manual` contra el servidor | Vector de 384, norma 1 ± 1e-5 |
 | 1.8 | Construir el `.sqlite` (**TDD**) | `construir.py`, esquema v1 (abajo). Test con 3 chunks falsos en `tmp_path`: `MATCH '"0009"'` devuelve el chunk correcto; el BLOB vuelve a dar los mismos 384 floats; `meta` tiene todas las claves | pytest verde |
-| 1.9 | Generar el índice | `uv run zca-indice construir --pdf manuales/EN_ACS355_UM_E_A5.pdf --tokenizador models/qwen2.5-tokenizer.json --e5 http://127.0.0.1:8090 --salida models/acs355.sqlite` | Informe en consola: 1 500–2 200 chunks, tokens medios ~130, **máximo ≤ 170**. Claude lee 10 chunks al azar y la entrada 0009 (p. 362) está entera en un solo chunk |
+| 1.9 | Generar el índice | `uv run zca-indice construir --pdf manuales/EN_ACS355_UM_E_A5.pdf --tokenizador models/qwen2.5-tokenizer.json --e5 http://127.0.0.1:8090 --salida models/acs355.sqlite` | Informe en consola: 1 500–2 200 chunks, tokens medios ~130, **máximo ≤ 170**. Claude lee 10 chunks al azar y la entrada 0009 (p. 362) queda en trozos que empiezan todos por "0009 MOT OVERTEMP" (mide 266 tokens: no cabe en uno; decidido con Francisco el 2026-09-14, ver `informes/2026-09-14-indice-manual.md`) |
 | 1.10 | Batería **[Francisco]** | Claude redacta `docs/bateria-manual.yaml` (formato y reparto en §6), comprobando cada página esperada en el texto del PDF. **Francisco la revisa y la aprueba antes de medir.** Se commitea solo aprobada | Aprobación escrita en el informe |
 | 1.11 | Evaluación (**TDD** en la lógica) | `evaluar.py`: `rrf()`, `seleccionar()` (presupuesto) y `acierta()` con las tablas de abajo. Después, `uv run zca-indice evaluar --bateria docs/bateria-manual.yaml --indice models/acs355.sqlite --e5 …` → tabla por pregunta (páginas devueltas por FTS5, vectores e híbrida) | Informe `informes/AAAA-MM-DD-indice-manual.md` con la tabla y el recall@2 de los tres métodos |
 | 1.12 | Vectores de la batería | `uv run zca-indice vectores-bateria … --salida models/bateria-vectores.json` (`{id, pregunta, vector}`), para comparar con el móvil en 2.3 | Fichero con 12 vectores |
@@ -482,7 +482,11 @@ object MarkdownLite { fun parse(text: String): List<Block> }
 
 Disparadores (sin tildes, en minúsculas): en la pregunta — `tension`, `bus de continua`,
 `condensador`, `desmont`, `medir`, `mido`, `cable del motor`, `brk`, `dc bus`, `voltage`; en los
-chunks — `capacitors discharge`, `input power is applied`, `dc bus`, `electricity warning`.
+chunks — `capacitors discharge`, `input power is applied`, `dc bus`, `electricity warning`,
+`instructions in chapter safety`, `disconnect it from the ac power` (los dos últimos añadidos el
+2026-09-14 para B09, cambiar el ventilador: salen en 5 y 1 chunks del índice; `warning!` se
+descartó por salir en 38). Caso de test añadido: pregunta neutra con un chunk que contiene
+`disconnect it from the AC power source` → aviso.
 Texto del aviso: *"Antes de intervenir: corte la alimentación, espere 5 minutos a que se
 descarguen los condensadores y compruebe con un multímetro que no hay tensión."* (p. 18).
 
