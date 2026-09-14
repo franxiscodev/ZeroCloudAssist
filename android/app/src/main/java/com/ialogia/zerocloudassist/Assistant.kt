@@ -22,6 +22,7 @@ import com.ialogia.zerocloudassist.rag.MetaResult
 import com.ialogia.zerocloudassist.rag.PromptBuilder
 import com.ialogia.zerocloudassist.rag.QueryTerms
 import com.ialogia.zerocloudassist.rag.SafetyRules
+import com.ialogia.zerocloudassist.rag.Source
 import com.ialogia.zerocloudassist.rag.SourceList
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -35,7 +36,14 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 import java.io.IOException
+
+/** Un fichero que la app necesita fuera del APK, para la pantalla de "falta …". */
+data class RequiredFile(val label: String, val path: String, val present: Boolean)
+
+/** Por qué la app no puede preguntar todavía: qué falta o no vale y cómo copiarlo. */
+data class Blocked(val title: String, val reason: String?, val files: List<RequiredFile>, val command: String, val pill: String)
 
 /**
  * Estado y ciclo de vida del asistente, con vida de proceso: la carga, la generación y la
@@ -56,6 +64,16 @@ object Assistant {
     private const val METRICS_TAG = "ZCA_METRICS"
     private const val ANSWER_TAG = "ZCA_RESPUESTA"
 
+    /** En qué punto va la pregunta en curso, para la espera en pantalla. */
+    sealed interface Phase {
+        data object Idle : Phase
+        data object Searching : Phase
+        /** Procesando el prompt; [startedAt] (`elapsedRealtime`) es cuando se pulsó "Preguntar". */
+        data class Processing(val startedAt: Long) : Phase
+        data object Generating : Phase
+    }
+
+    /** La cabecera: nombre y versión del índice cuando está listo; si no, qué está pasando. */
     var status by mutableStateOf("Iniciando…")
         private set
     var entries by mutableStateOf(Conversation.initial())
@@ -66,6 +84,11 @@ object Assistant {
         private set
     var generating by mutableStateOf(false)
         private set
+    var phase by mutableStateOf<Phase>(Phase.Idle)
+        private set
+    /** Qué fichero falta o no vale; `null` si están todos. */
+    var blocked by mutableStateOf<Blocked?>(null)
+        private set
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mutex = Mutex()
@@ -74,6 +97,14 @@ object Assistant {
     private lateinit var appContext: Context
     private lateinit var engine: InferenceEngine
     private var loadMs = 0L
+
+    private class Needed(val label: String, val title: String, val pill: String, val subdir: String, val name: String)
+
+    private val NEEDED = listOf(
+        Needed("Modelo de chat", "Falta el modelo de chat", "sin modelo", ModelLocation.MODELS, MODEL_FILE),
+        Needed("Modelo de búsqueda", "Falta el modelo de búsqueda", "sin modelo", ModelLocation.MODELS, E5_FILE),
+        Needed("Índice del manual", "Falta el manual", "sin manual", ModelLocation.MANUALS, MANUAL_FILE),
+    )
 
     /** El índice abierto y lo que la búsqueda consulta en cada pregunta. Se queda abierto al salir. */
     private class Manual(val store: ManualStore, val meta: ManualMeta) {
@@ -84,7 +115,7 @@ object Assistant {
 
     private var manual: Manual? = null
 
-    /** Llamar en `onStart`: carga modelos e índice; si falta algo, deja en [status] el `adb push`. */
+    /** Llamar en `onStart`: carga modelos e índice; si falta algo, lo deja en [blocked]. */
     fun start(context: Context) {
         if (!::appContext.isInitialized) {
             appContext = context.applicationContext
@@ -103,6 +134,7 @@ object Assistant {
     fun generate(prompt: String): Boolean {
         if (!ready || generating || prompt.isBlank()) return false
         generating = true
+        phase = Phase.Searching
         metrics = ""
         entries = Conversation.ask(entries, prompt)
         exclusive {
@@ -117,10 +149,15 @@ object Assistant {
                 status = "Error al generar: ${e.message ?: e.javaClass.simpleName}"
             } finally {
                 generating = false
+                phase = Phase.Idle
             }
         }
         return true
     }
+
+    /** El texto del manual de una página (la de la tarjeta de seguridad), para desplegarlo. */
+    fun pageSource(page: Int): Source? =
+        manual?.store?.chunks?.filter { it.page == page }?.let { SourceList.from(it).firstOrNull() }
 
     private fun exclusive(cancelRunning: Boolean = false, block: suspend () -> Unit) {
         if (cancelRunning) job?.cancel()
@@ -130,9 +167,18 @@ object Assistant {
     private suspend fun load() {
         if (engine.state.value.isModelLoaded && Embedder.isLoaded && manual != null) return
 
-        val model = requireFile(ModelLocation.MODELS, MODEL_FILE) ?: return
-        val e5 = requireFile(ModelLocation.MODELS, E5_FILE) ?: return
-        if (!openManual()) return
+        val dir = appContext.getExternalFilesDir(null)!!
+        val files = NEEDED.map { ModelLocation.filePath(dir, it.subdir, it.name) }
+        files.forEach { it.parentFile?.mkdirs() }  // para que `adb push` tenga dónde copiar
+        val required = NEEDED.zip(files) { n, f -> RequiredFile(n.label, "${n.subdir}/${n.name}", f.exists()) }
+        val missing = required.indexOfFirst { !it.present }
+        if (missing >= 0) {
+            val n = NEEDED[missing]
+            block(Blocked(n.title, null, required, ModelLocation.adbPushHint(appContext.packageName, n.subdir, n.name), n.pill))
+            return
+        }
+        val (model, e5, index) = files
+        if (!openManual(index, required)) return
 
         // El motor carga la librería nativa en segundo plano al crearse.
         val state = engine.state.first {
@@ -163,37 +209,29 @@ object Assistant {
             return
         }
         val meta = manual!!.meta
-        status = "Listo · ${meta.manual} · índice ${meta.version}"
+        blocked = null
+        status = "${meta.manual} · índice ${meta.version}"
         ready = true
     }
 
-    /** El fichero, o `null` con el `adb push` que falta en [status]. */
-    private fun requireFile(subdir: String, name: String): java.io.File? {
-        val file = ModelLocation.filePath(appContext.getExternalFilesDir(null)!!, subdir, name)
-        file.parentFile?.mkdirs()  // para que `adb push` tenga dónde copiar
-        if (file.exists()) return file
-        status = "Falta $name. Cópialo desde la raíz del repo con:\n" +
-            ModelLocation.adbPushHint(appContext.packageName, subdir, name)
-        return null
+    private fun block(reason: Blocked) {
+        blocked = reason
+        status = reason.title
     }
 
-    /** Abre el índice y comprueba su `meta`; si no vale, lo explica en [status]. */
-    private suspend fun openManual(): Boolean {
+    /** Abre el índice y comprueba su `meta`; si no vale, lo deja en [blocked]. */
+    private suspend fun openManual(file: File, required: List<RequiredFile>): Boolean {
         if (manual != null) return true
-        val file = ModelLocation.filePath(appContext.getExternalFilesDir(null)!!, ModelLocation.MANUALS, MANUAL_FILE)
-        file.parentFile?.mkdirs()
         val hint = ModelLocation.adbPushHint(appContext.packageName, ModelLocation.MANUALS, MANUAL_FILE)
-        if (!file.exists()) {
-            status = "Falta el manual ($MANUAL_FILE). Cópialo desde la raíz del repo con:\n$hint"
-            return false
-        }
+        fun incompatible(reason: String) = block(Blocked("El índice no vale", reason, required, hint, "sin manual"))
+
         return withContext(Dispatchers.IO) {
             val t0 = SystemClock.elapsedRealtime()
             val store = try {
                 ManualStore(file)
             } catch (e: Exception) {
                 Log.e(TAG, "No se pudo abrir el índice", e)
-                status = "No se pudo abrir el índice: ${e.message}\nCópialo de nuevo con:\n$hint"
+                incompatible("No se pudo abrir: ${e.message}")
                 return@withContext false
             }
             when (val result = MetaCheck.check(store.meta, hint)) {
@@ -205,7 +243,7 @@ object Assistant {
                 }
                 is MetaResult.Incompatible -> {
                     store.close()
-                    status = "El índice no vale: ${result.reason}.\nCópialo de nuevo con:\n${result.hint}"
+                    incompatible("${result.reason}.")
                     false
                 }
                 is MetaResult.Missing -> {  // no pasa: el fichero existe
@@ -245,6 +283,7 @@ object Assistant {
         val safety = SafetyRules.check(question, chunks)
         // Fuentes y aviso antes de procesar el prompt, para que haya dónde mirar mientras espera.
         entries = Conversation.attach(entries, SourceList.from(chunks), safety)
+        phase = Phase.Processing(sentAt)
         Log.i(TAG, "Búsqueda en $searchMs ms: p. ${chunks.map { it.page }}, aviso ${safety != null}")
 
         var firstTokenAt = 0L
@@ -253,7 +292,10 @@ object Assistant {
         // Cada pregunta parte del prompt de sistema: lleva sus propios fragmentos del manual.
         engine.resetConversation()
         engine.sendUserPrompt(PromptBuilder.userTurn(question, chunks), MAX_TOKENS).collect { piece ->
-            if (tokens == 0) firstTokenAt = SystemClock.elapsedRealtime()
+            if (tokens == 0) {
+                firstTokenAt = SystemClock.elapsedRealtime()
+                phase = Phase.Generating
+            }
             tokens++
             answer.append(piece)
             entries = Conversation.append(entries, piece)
