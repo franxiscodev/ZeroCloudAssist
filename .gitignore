@@ -15,6 +15,7 @@ manuales/*.pdf
 android/build/
 android/**/build/
 android/.gradle/
+android/.kotlin/
 android/local.properties
 android/.idea/
 android/.cxx/

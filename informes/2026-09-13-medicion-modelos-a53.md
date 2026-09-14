@@ -3,8 +3,8 @@
 Plan 01, etapa 2C. Objetivo: tok/s, TTFT, carga y memoria de cada modelo en el móvil real,
 antes de escribir código propio. Criterios go/no-go en §3 del plan.
 
-**Estado: medición cerrada (tandas 1 a 4).** Resultado y recomendación en la última sección,
-"Decisión según §3". El Gate G1 queda pendiente de la decisión de Francisco.
+**Estado: medición cerrada (tandas 1 a 4). Gate G1 = GO con reservas**, decidido por Francisco
+el 2026-09-13. Resultado, recomendación y decisión en la última sección, "Decisión según §3".
 
 ## Condiciones
 
@@ -353,4 +353,14 @@ Condiciones para seguir, que pasan al plan 02:
 - Medir Llama 3.2 1B y Qwen2.5-0.5B en el móvil (paso 2C.9): quedaron descartados antes, por
   calidad en el PC.
 
-**Gate G1: pendiente de la decisión de Francisco.**
+### Gate G1
+
+**GO con reservas**, decidido por Francisco el 2026-09-13. Para la demo y el MVP los números
+bastan, y que funcione en un móvil de gama media es un argumento a favor. Se sigue con la etapa 4
+del plan 01 con dos ajustes:
+
+- **6 hilos**, no 4.
+- **Sin mediciones formales en 4.11**: basta con que la app propia responda bien a los 3 prompts
+  de §5 y sobreviva a minimizar 60 s.
+
+Las condiciones de la recomendación pasan al plan 02.

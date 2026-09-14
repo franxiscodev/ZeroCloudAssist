@@ -121,7 +121,38 @@ El ejemplo oficial compila **sin modificar** desde este PC:
 | Tiempo (primera vez, sin caché) | 4 min 11 s |
 | Resultado | `app/build/outputs/apk/debug/app-debug.apk`, 109 MB (arm64-v8a + x86_64, todas las variantes de CPU) |
 
-Queda pendiente instalarlo y medirlo en el A53 (pasos 3.4–3.6) cuando el móvil esté conectado.
+## Ejemplo oficial en el A53 (pasos 3.4–3.6, 2026-09-14)
+
+Instalado con `adb install -r` del APK anterior, por depuración inalámbrica. Tras el G1 se
+acordó **no medir** aquí: basta con comprobar que carga y responde. Los tiempos salen de logcat y
+son orientativos.
+
+| Dato | Valor |
+| --- | --- |
+| Librería nativa | Carga sin errores. Variante elegida: `libggml-cpu-android_armv8.2_2.so` |
+| `system_info` | `NEON = 1 \| ARM_FMA = 1 \| FP16_VA = 1 \| DOTPROD = 1 \| OPENMP = 1 \| KLEIDIAI = 1 \| REPACK = 1` |
+| Modelo | `qwen2.5-1.5b-instruct-q4_k_m.gguf`, elegido desde Descargas |
+| Lectura de metadatos GGUF | ~10 s (lee el fichero por el selector del sistema) |
+| Copia al almacenamiento interno | 10,3 s para 1,1 GB |
+| Carga del modelo y contexto | 6,0 s |
+| Parámetros efectivos | 4 hilos, `n_ctx` 8192, temp 0,3, sin prompt de sistema, hasta 1024 tokens |
+| Prompt 1 de §5 | Responde en español con lista numerada; ~0,8 s hasta empezar a generar y 57 s de generación (respuesta larga, sin límite de 200) |
+| Estabilidad | Sin cierres; el proceso sigue vivo al terminar |
+
+Calidad: formato bien, contenido flojo. Afirma que el variador "controla la frecuencia de un
+generador" e inventa tipos ("VFP-R", "VFP-HV"). Es lo esperable sin prompt de sistema, con
+temp 0,3 y sin límite de longitud. La app propia usa el prompt de §5, temp 0,2 y 200 tokens.
+
+**Toolchain validado de punta a punta:** compilado en este PC, instalado y respondiendo en el
+A53.
+
+Observaciones del ejemplo, que no afectan a la app propia:
+
+- La primera selección del fichero se quedó parada tras leer los metadatos, sin error en
+  logcat; la segunda, del mismo fichero, fue bien.
+- Como el GGUF de Qwen no trae `general.name`, el ejemplo llama a la copia
+  `qwen2-<timestamp>.gguf`: cada selección puede crear otra copia de 1,1 GB. La app propia lee
+  el modelo desde `getExternalFilesDir` sin copiarlo (paso 4.7).
 
 ## Incidencias
 

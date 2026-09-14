@@ -1,0 +1,5 @@
+¿Qué es un variador de frecuencia?
+
+Un variador ABB muestra el fallo F0009 y el armario está muy caliente. ¿Qué reviso?
+
+¿Cómo mido la tensión del bus de continua del variador?
