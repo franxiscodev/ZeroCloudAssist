@@ -18,5 +18,8 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v6
+      # Configurar :lib hace que AGP descargue el NDK que fija (ndkVersion), y el SDK del runner no
+      # trae aceptada su licencia: sin esto, el build falla con LicenceNotAcceptedException.
+      - run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
       - run: bash gradlew :app:testDebugUnitTest
         working-directory: android
