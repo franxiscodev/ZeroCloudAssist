@@ -28,7 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      # setup-uv no publica etiqueta mayor flotante (no hay v10, solo v10.x.y): versión completa.
+      - uses: astral-sh/setup-uv@v10.1.0
       # Los tests "manual" necesitan el PDF y los modelos, que no están en el repo. -v deja cada
       # test con PASSED en el log.
       - run: uv run --locked pytest -v -m "not manual"
