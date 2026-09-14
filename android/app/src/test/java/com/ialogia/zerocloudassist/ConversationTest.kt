@@ -31,6 +31,15 @@ class ConversationTest {
     }
 
     @Test
+    fun `cortar por el límite de tokens marca el último turno`() {
+        val entries = listOf(Turn("P1", "R1"), Turn("P2", "1. Paso\n6.**"))
+        assertEquals(
+            listOf(Turn("P1", "R1"), Turn("P2", "1. Paso\n6.**", truncated = true)),
+            Conversation.truncate(entries),
+        )
+    }
+
+    @Test
     fun `al liberar el modelo se avisa de que ya no recuerda lo anterior`() {
         val entries = listOf(Turn("P1", "R1"))
         assertEquals(

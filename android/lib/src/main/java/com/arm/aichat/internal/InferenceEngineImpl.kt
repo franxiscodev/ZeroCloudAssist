@@ -103,6 +103,14 @@ internal class InferenceEngineImpl private constructor(
     @FastNative
     private external fun generateNextToken(): String?
 
+    // ZeroCloudAssist: dice si la última respuesta se cortó por el límite de tokens.
+    @FastNative
+    private external fun wasTruncated(): Boolean
+
+    @Volatile
+    private var _lastResponseTruncated = false
+    override val lastResponseTruncated: Boolean get() = _lastResponseTruncated
+
     @FastNative
     private external fun unload()
 
@@ -228,11 +236,11 @@ internal class InferenceEngineImpl private constructor(
             _readyForSystemPrompt = false
             _state.value = InferenceEngine.State.ProcessingUserPrompt
 
+            _lastResponseTruncated = false
             processUserPrompt(message, predictLength).let { result ->
-                if (result != 0) {
-                    Log.e(TAG, "Failed to process user prompt: $result")
-                    return@flow
-                }
+                // ZeroCloudAssist: el ejemplo hacía `return@flow` y dejaba el motor atascado en
+                // ProcessingUserPrompt (y cleanUp() lanzaba al minimizar). Ahora pasa a Error.
+                if (result != 0) throw RuntimeException("Failed to process user prompt: $result")
             }
 
             Log.i(TAG, "User prompt processed. Generating assistant prompt...")
@@ -242,6 +250,7 @@ internal class InferenceEngineImpl private constructor(
                     if (utf8token.isNotEmpty()) emit(utf8token)
                 } ?: break
             }
+            _lastResponseTruncated = wasTruncated()
             if (_cancelGeneration) {
                 Log.i(TAG, "Assistant generation aborted per requested.")
             } else {
@@ -296,6 +305,11 @@ internal class InferenceEngineImpl private constructor(
 
                 is InferenceEngine.State.Error -> {
                     Log.i(TAG, "Resetting error states...")
+                    // ZeroCloudAssist: el ejemplo solo cambiaba el estado y dejaba modelo y contexto
+                    // en memoria; la siguiente carga metía otra copia de ~1 GB encima.
+                    // unload() es idempotente (ai_chat.cpp pone los punteros a nulo).
+                    _readyForSystemPrompt = false
+                    unload()
                     _state.value = InferenceEngine.State.Initialized
                     Log.i(TAG, "States reset!")
                     Unit

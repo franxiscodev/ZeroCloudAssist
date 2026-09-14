@@ -267,7 +267,8 @@ static void reset_long_term_states(const bool clear_kv_cache = true) {
     system_prompt_position = 0;
     current_position = 0;
 
-    if (clear_kv_cache)
+    // ZeroCloudAssist: unload() puede llegar sin contexto (si falló prepare()): no tocar la caché KV.
+    if (clear_kv_cache && g_context)
         llama_memory_clear(llama_get_memory(g_context), false);
 }
 
@@ -279,13 +280,16 @@ static void reset_long_term_states(const bool clear_kv_cache = true) {
  * - take half of the last (system_prompt_position - system_prompt_position) tokens
  * - recompute the logits in batches
  */
-static void shift_context() {
+// ZeroCloudAssist: devuelve cuántas posiciones ha desplazado, para que quien tenga posiciones
+// calculadas antes del desplazamiento (lote en curso, punto de parada) las corrija.
+static int shift_context() {
     const int n_discard = (current_position - system_prompt_position) / 2;
     LOGi("%s: Discarding %d tokens", __func__, n_discard);
     llama_memory_seq_rm(llama_get_memory(g_context), 0, system_prompt_position, system_prompt_position + n_discard);
     llama_memory_seq_add(llama_get_memory(g_context), 0, system_prompt_position + n_discard, current_position, -n_discard);
     current_position -= n_discard;
     LOGi("%s: Context shifting done! Current position: %d", __func__, current_position);
+    return n_discard;
 }
 
 static std::string chat_add_and_format(const std::string &role, const std::string &content) {
@@ -308,18 +312,21 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
 static llama_pos stop_generation_position;
 static std::string cached_token_chars;
 static std::ostringstream assistant_ss;
+// ZeroCloudAssist: la última respuesta se cortó por el límite de tokens, no por fin de turno.
+static bool stopped_by_limit;
 
 static void reset_short_term_states() {
     stop_generation_position = 0;
     cached_token_chars.clear();
     assistant_ss.str("");
+    stopped_by_limit = false;
 }
 
 static int decode_tokens_in_batches(
         llama_context *context,
         llama_batch &batch,
         const llama_tokens &tokens,
-        const llama_pos start_pos,
+        llama_pos start_pos,
         const bool compute_last_logit = false) {
     // Process tokens in batches using the global batch
     LOGd("%s: Decode %d tokens starting at position %d", __func__, (int) tokens.size(), start_pos);
@@ -331,7 +338,9 @@ static int decode_tokens_in_batches(
         // Shift context if current batch cannot fit into the context
         if (start_pos + i + cur_batch_size >= DEFAULT_CONTEXT_SIZE - OVERFLOW_HEADROOM) {
             LOGw("%s: Current batch won't fit into context! Shifting...", __func__);
-            shift_context();
+            // ZeroCloudAssist: el ejemplo seguía colocando el lote en las posiciones de antes del
+            // desplazamiento y llama_decode lo rechazaba (exige posiciones consecutivas).
+            start_pos -= shift_context();
         }
 
         // Add tokens to the batch with proper positions
@@ -487,6 +496,33 @@ static bool is_valid_utf8(const char *string) {
     return true;
 }
 
+/**
+ * ZeroCloudAssist: al cortar por el límite de tokens, el ejemplo dejaba el turno abierto: no lo
+ * guardaba en el historial ni metía el cierre del turno en la caché KV, y la siguiente pregunta
+ * llegaba pegada a una respuesta a medias. Se cierra igual que cuando el modelo emite fin de turno
+ * (el "\n" posterior lo antepone common_chat_format_single al formatear la siguiente pregunta).
+ */
+static void close_truncated_turn() {
+    stopped_by_limit = true;
+    cached_token_chars.clear();  // bytes de un carácter UTF-8 a medias: se descartan
+    if (!common_chat_templates_was_explicit(g_chat_templates.get())) return;
+
+    const std::string content = assistant_ss.str();
+    const std::string formatted = chat_add_and_format(ROLE_ASSISTANT, content);
+    const size_t content_at = formatted.rfind(content);
+    if (content.empty() || content_at == std::string::npos) return;
+
+    std::string closing = formatted.substr(content_at + content.size());
+    if (!closing.empty() && closing.back() == '\n') closing.pop_back();
+    const auto closing_tokens = common_tokenize(g_context, closing, false, true);
+    if (closing_tokens.empty()) return;
+    if (decode_tokens_in_batches(g_context, g_batch, closing_tokens, current_position)) {
+        LOGe("%s: llama_decode() failed!", __func__);
+        return;
+    }
+    current_position += (int) closing_tokens.size();
+}
+
 extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
@@ -496,12 +532,15 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
     // Infinite text generation via context shifting
     if (current_position >= DEFAULT_CONTEXT_SIZE - OVERFLOW_HEADROOM) {
         LOGw("%s: Context full! Shifting...", __func__);
-        shift_context();
+        // ZeroCloudAssist: el punto de parada también se desplaza; el ejemplo lo dejaba ~1000
+        // posiciones más lejos y la respuesta ignoraba el límite de tokens.
+        stop_generation_position -= shift_context();
     }
 
     // Stop if reaching the marked position
     if (current_position >= stop_generation_position) {
         LOGw("%s: STOP: hitting stop position: %d", __func__, stop_generation_position);
+        close_truncated_turn();
         return nullptr;
     }
 
@@ -555,11 +594,23 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
     reset_short_term_states();
 
     // Free up resources
+    // ZeroCloudAssist: punteros a nulo tras liberar, para que unload() se pueda llamar dos veces
+    // (cleanUp() en estado Error lo llama aunque la carga fallara a medias).
     common_sampler_free(g_sampler);
+    g_sampler = nullptr;
     g_chat_templates.reset();
     llama_batch_free(g_batch);
+    g_batch = {};
     llama_free(g_context);
+    g_context = nullptr;
     llama_model_free(g_model);
+    g_model = nullptr;
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_arm_aichat_internal_InferenceEngineImpl_wasTruncated(JNIEnv * /*unused*/, jobject /*unused*/) {
+    return stopped_by_limit ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C"

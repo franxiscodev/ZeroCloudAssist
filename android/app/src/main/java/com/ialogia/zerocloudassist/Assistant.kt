@@ -147,6 +147,7 @@ object Assistant {
             tokens++
             entries = Conversation.append(entries, piece)
         }
+        if (engine.lastResponseTruncated) entries = Conversation.truncate(entries)
         if (tokens == 0) return
 
         val endAt = SystemClock.elapsedRealtime()
@@ -166,7 +167,14 @@ object Assistant {
     private suspend fun release() {
         val state = engine.state.value
         if (state.isModelLoaded || state is InferenceEngine.State.Error) {
-            withContext(Dispatchers.IO) { engine.cleanUp() }
+            try {
+                withContext(Dispatchers.IO) { engine.cleanUp() }
+            } catch (e: IllegalStateException) {
+                // El motor rechaza liberar en estados intermedios; mejor no liberar que cerrar la app.
+                Log.e(TAG, "No se pudo liberar el modelo en ${state.javaClass.simpleName}", e)
+                status = "No se pudo liberar el modelo"
+                return
+            }
             entries = Conversation.released(entries)
             Log.i(TAG, "Modelo liberado")
         }

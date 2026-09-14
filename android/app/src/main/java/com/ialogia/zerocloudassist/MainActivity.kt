@@ -129,5 +129,12 @@ private fun TurnView(turn: Entry.Turn) {
                 fontStyle = FontStyle.Italic,
             )
         }
+        if (turn.truncated) {
+            Text(
+                "(respuesta cortada por el límite de longitud)",
+                style = MaterialTheme.typography.bodySmall,
+                fontStyle = FontStyle.Italic,
+            )
+        }
     }
 }

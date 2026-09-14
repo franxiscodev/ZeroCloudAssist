@@ -31,6 +31,12 @@ interface InferenceEngine {
     fun sendUserPrompt(message: String, predictLength: Int = DEFAULT_PREDICT_LENGTH): Flow<String>
 
     /**
+     * ZeroCloudAssist: `true` si la última respuesta de [sendUserPrompt] se cortó por el límite de
+     * tokens en vez de terminar el turno.
+     */
+    val lastResponseTruncated: Boolean
+
+    /**
      * Runs a benchmark with the specified parameters.
      */
     suspend fun bench(pp: Int, tg: Int, pl: Int, nr: Int = 1): String

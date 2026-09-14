@@ -4,7 +4,12 @@ import com.ialogia.zerocloudassist.Entry.Notice
 import com.ialogia.zerocloudassist.Entry.Turn
 
 sealed interface Entry {
-    data class Turn(val question: String, val answer: String = "", val interrupted: Boolean = false) : Entry
+    data class Turn(
+        val question: String,
+        val answer: String = "",
+        val interrupted: Boolean = false,
+        val truncated: Boolean = false,
+    ) : Entry
     data class Notice(val text: String) : Entry
 }
 
@@ -20,6 +25,9 @@ object Conversation {
 
     fun interrupt(entries: List<Entry>): List<Entry> =
         updateLastTurn(entries) { it.copy(interrupted = true) }
+
+    fun truncate(entries: List<Entry>): List<Entry> =
+        updateLastTurn(entries) { it.copy(truncated = true) }
 
     /** El texto sigue en pantalla, pero el modelo recargado empieza sin memoria de la conversación. */
     fun released(entries: List<Entry>): List<Entry> =
