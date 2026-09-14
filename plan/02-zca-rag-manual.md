@@ -276,7 +276,7 @@ jobs:
 | 1.6 | Términos literales (**TDD**) | `terminos.py` con la tabla de casos de abajo | pytest verde |
 | 1.7 | Vectorizar | `vectorizar.py`: cliente HTTP de `llama-server` en `127.0.0.1:8090`; **endpoint y forma de la respuesta según `tools/server/README.md` del tag b10941**, no de memoria. Normaliza L2 siempre en Python. Test TDD de `normalizar()`; test `manual` contra el servidor | Vector de 384, norma 1 ± 1e-5 |
 | 1.8 | Construir el `.sqlite` (**TDD**) | `construir.py`, esquema v1 (abajo). Test con 3 chunks falsos en `tmp_path`: `MATCH '"0009"'` devuelve el chunk correcto; el BLOB vuelve a dar los mismos 384 floats; `meta` tiene todas las claves | pytest verde |
-| 1.9 | Generar el índice | `uv run zca-indice construir --pdf manuales/EN_ACS355_UM_E_A5.pdf --tokenizador models/qwen2.5-tokenizer.json --e5 http://127.0.0.1:8090 --salida models/acs355.sqlite` | Informe en consola: 1 500–2 200 chunks, tokens medios ~130, **máximo ≤ 170**. Claude lee 10 chunks al azar y la entrada 0009 (p. 362) está entera en un solo chunk |
+| 1.9 | Generar el índice | `uv run zca-indice construir --pdf manuales/EN_ACS355_UM_E_A5.pdf --tokenizador models/qwen2.5-tokenizer.json --e5 http://127.0.0.1:8090 --salida models/acs355.sqlite` | Informe en consola: 1 500–2 200 chunks, tokens medios ~130, **máximo ≤ 170**. Claude lee 10 chunks al azar y la entrada 0009 (p. 362) queda en trozos que empiezan todos por "0009 MOT OVERTEMP" (mide 266 tokens: no cabe en uno; decidido con Francisco el 2026-09-14, ver `informes/2026-09-14-indice-manual.md`) |
 | 1.10 | Batería **[Francisco]** | Claude redacta `docs/bateria-manual.yaml` (formato y reparto en §6), comprobando cada página esperada en el texto del PDF. **Francisco la revisa y la aprueba antes de medir.** Se commitea solo aprobada | Aprobación escrita en el informe |
 | 1.11 | Evaluación (**TDD** en la lógica) | `evaluar.py`: `rrf()`, `seleccionar()` (presupuesto) y `acierta()` con las tablas de abajo. Después, `uv run zca-indice evaluar --bateria docs/bateria-manual.yaml --indice models/acs355.sqlite --e5 …` → tabla por pregunta (páginas devueltas por FTS5, vectores e híbrida) | Informe `informes/AAAA-MM-DD-indice-manual.md` con la tabla y el recall@2 de los tres métodos |
 | 1.12 | Vectores de la batería | `uv run zca-indice vectores-bateria … --salida models/bateria-vectores.json` (`{id, pregunta, vector}`), para comparar con el móvil en 2.3 | Fichero con 12 vectores |
@@ -373,7 +373,19 @@ CREATE TABLE chunks (
 CREATE VIRTUAL TABLE chunks_fts USING fts5(
   texto, content='chunks', content_rowid='id', tokenize='unicode61'
 );
+-- Añadido en E1 tras G3 (2026-09-14): glosario taller → manual, listas separadas por "|"
+CREATE TABLE glosario (es TEXT NOT NULL, en TEXT NOT NULL);
+-- meta gana capitulo_codigos='Fault tracing' y capitulo_parametros='Actual signals and parameters'
 ```
+
+**Búsqueda que sale de G3** (GO con reservas acotado al MVP; detalle y pendientes de producción en
+`informes/2026-09-14-indice-manual.md`): la consulta FTS5 = términos literales + expansiones del
+glosario (`docs/glosario-taller.yaml`, viaja en la tabla `glosario`); los resultados de FTS5 se
+piden **todos** por `rank`, se reordenan con `priorizar` (primero los chunks con una línea que
+empieza por el código y, si la pregunta es de fallo/alarma o de parámetro, los de su capítulo) y se
+recortan a 10; después RRF con los vectores y `seleccionar`. Las tablas de casos gemelas están en
+`tools/tests/test_terminos.py` y `tools/tests/test_evaluar.py`. La traducción de la pregunta con
+Qwen se midió y se descartó.
 
 ### Etapa 2 — Piezas nativas en el A53 (1 día)
 
@@ -415,9 +427,9 @@ mínimo, verde, commit). Tests con `JAVA_HOME=<Temurin 17> bash gradlew :app:tes
 
 | # | Paso | Fichero y tests | Verificación |
 | --- | --- | --- | --- |
-| 3.1 | Términos literales (**TDD**) | `rag/QueryTerms.kt`, tabla de casos de E1 | Verde |
-| 3.2 | Búsqueda pura (**TDD**) | `rag/ManualSearch.kt`: `cosineTopK`, `rrf`, `select`, con las tablas de E1 más: `cosineTopK` con 3 vectores de dimensión 2 devuelve el orden correcto | Verde |
-| 3.3 | Almacén | `rag/ManualStore.kt`: abre el `.sqlite` en solo lectura, lee `meta`, carga chunks y vectores (BLOB little-endian → `FloatArray` plano), `ftsIds(query, limit = 10)`. Sin tests JVM (SQLite nativo); se verifica en el móvil en 3.14 | — |
+| 3.1 | Términos literales (**TDD**) | `rag/QueryTerms.kt`, tabla de casos de E1, más el glosario (`expansions`, comparación sin tildes, palabra entera o prefijo con `*`) y `literalClass` (fallo/alarma frente a parámetro), con los casos de `tools/tests/test_terminos.py` | Verde |
+| 3.2 | Búsqueda pura (**TDD**) | `rag/ManualSearch.kt`: `cosineTopK`, `rrf`, `select` y `prioritize` (gemelo de `priorizar`), con las tablas de E1 y de `tools/tests/test_evaluar.py` más: `cosineTopK` con 3 vectores de dimensión 2 devuelve el orden correcto | Verde |
+| 3.3 | Almacén | `rag/ManualStore.kt`: abre el `.sqlite` en solo lectura, lee `meta`, carga chunks, vectores (BLOB little-endian → `FloatArray` plano) y la tabla `glosario`, `ftsIds(query)` devuelve todos por `rank` (se priorizan y recortan a 10 en `ManualSearch`). Sin tests JVM (SQLite nativo); se verifica en el móvil en 3.14 | — |
 | 3.4 | Comprobación de `meta` (**TDD**) | `rag/MetaCheck.kt`: `null` → `Missing` con el `adb push`; `esquema = "2"` → `Incompatible`; `embeddings` distinto del e5 esperado → `Incompatible`; correcto → `Ok(ManualMeta(manual, version))` | Verde |
 | 3.5 | Prompt (**TDD**) | `rag/PromptBuilder.kt`: `SYSTEM_PROMPT` (§6) y `userTurn(question, chunks)` con el formato exacto de §6. Tests: cadena exacta con 2 chunks; con 0 chunks lleva "(sin fragmentos)"; **nunca contiene "p. "**. Medir los tokens del prompt de sistema con `llama-tokenize` en el PC: ≤ 100 | Verde |
 | 3.6 | Seguridad (**TDD**) | `rag/SafetyRules.kt` con los casos de abajo | Verde |
@@ -482,7 +494,11 @@ object MarkdownLite { fun parse(text: String): List<Block> }
 
 Disparadores (sin tildes, en minúsculas): en la pregunta — `tension`, `bus de continua`,
 `condensador`, `desmont`, `medir`, `mido`, `cable del motor`, `brk`, `dc bus`, `voltage`; en los
-chunks — `capacitors discharge`, `input power is applied`, `dc bus`, `electricity warning`.
+chunks — `capacitors discharge`, `input power is applied`, `dc bus`, `electricity warning`,
+`instructions in chapter safety`, `disconnect it from the ac power` (los dos últimos añadidos el
+2026-09-14 para B09, cambiar el ventilador: salen en 5 y 1 chunks del índice; `warning!` se
+descartó por salir en 38). Caso de test añadido: pregunta neutra con un chunk que contiene
+`disconnect it from the AC power source` → aviso.
 Texto del aviso: *"Antes de intervenir: corte la alimentación, espere 5 minutos a que se
 descarguen los condensadores y compruebe con un multímetro que no hay tensión."* (p. 18).
 
@@ -613,6 +629,11 @@ empresa (introduce red y un secreto), visor del PDF en la página citada, varios
 memoria de conversación, tema claro, OCR de la pantalla del variador, voz, bitácoras de trabajo.
 El móvil con i8mm solo entra si G4 da NO-GO en tiempo. La tabla `meta` deja preparado el cambio
 de manual sin tocar la app.
+
+**Pendientes para producción, anotados en G3** (lista con datos en
+`informes/2026-09-14-indice-manual.md`): modelo de vectores más capaz (e5-base), preguntas
+coloquiales, batería escrita por técnicos ajenos, fusión RRF, extracción de tablas que respete el
+diseño y entradas largas partidas. El MVP es para una demo de 5 minutos en una charla.
 
 ---
 
