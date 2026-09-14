@@ -4,13 +4,21 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
+import sqlite3
 import statistics
 import time
+from contextlib import closing
 from datetime import date
 from pathlib import Path
 
+import numpy as np
+import yaml
+
 from zca_tools.construir import construir
+from zca_tools.evaluar import acierta, rrf, seleccionar
 from zca_tools.extraer import leer_manual
+from zca_tools.terminos import consulta_fts
 from zca_tools.tokens import contador_qwen
 from zca_tools.trocear import trocear
 from zca_tools.vectorizar import vectorizar
@@ -58,6 +66,57 @@ def _construir(args: argparse.Namespace) -> None:
         print(f"  meta {clave} = {valor}")
 
 
+def _bateria(ruta: str) -> list[dict]:
+    return yaml.safe_load(_ruta(ruta).read_text(encoding="utf-8"))
+
+
+def _vectores_bateria(args: argparse.Namespace) -> None:
+    """Vectores de "query: " + pregunta, para comparar con los del móvil (plan 02, paso 2.3)."""
+    preguntas = _bateria(args.bateria)
+    vectores = vectorizar([f"query: {p['pregunta']}" for p in preguntas], args.e5)
+    datos = [{"id": p["id"], "pregunta": p["pregunta"], "vector": v.tolist()}
+             for p, v in zip(preguntas, vectores)]
+    _ruta(args.salida).write_text(json.dumps(datos, ensure_ascii=False), encoding="utf-8")
+    print(f"{len(datos)} vectores → {_ruta(args.salida)}")
+
+
+def _evaluar(args: argparse.Namespace) -> None:
+    """Páginas que entrarían en el prompt con FTS5, con vectores y con la híbrida (RRF)."""
+    preguntas = _bateria(args.bateria)
+    with closing(sqlite3.connect(f"file:{_ruta(args.indice).as_posix()}?mode=ro", uri=True)) as con:
+        filas = con.execute("SELECT id, pagina, tokens, vector FROM chunks ORDER BY id").fetchall()
+        ids = [f[0] for f in filas]
+        pagina = {f[0]: f[1] for f in filas}
+        tokens = {f[0]: f[2] for f in filas}
+        matriz = np.stack([np.frombuffer(f[3], dtype="<f4") for f in filas])
+        consultas = vectorizar([f"query: {p['pregunta']}" for p in preguntas], args.e5)
+
+        aciertos = {"fts": 0, "vectores": 0, "hibrida": 0}
+        print("| ID | Tipo | Esperadas | FTS5 | Vectores | Híbrida |")
+        print("| --- | --- | --- | --- | --- | --- |")
+        for p, q in zip(preguntas, consultas):
+            fts_query = consulta_fts(p["pregunta"])
+            fts = [r[0] for r in con.execute(
+                "SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ? ORDER BY rank LIMIT ?",
+                (fts_query, args.k),
+            )] if fts_query else []
+            vec = [ids[i] for i in np.argsort(-(matriz @ q))[: args.k]]
+            celdas = []
+            for metodo, ranking in (("fts", fts), ("vectores", vec), ("hibrida", rrf([fts, vec]))):
+                paginas = [pagina[i] for i in seleccionar(ranking, tokens)]
+                ok = acierta(paginas, p["paginas_esperadas"])
+                if p["tipo"] != "fuera":
+                    aciertos[metodo] += ok
+                marca = "" if p["tipo"] == "fuera" else (" ✓" if ok else " ✗")
+                celdas.append(", ".join(map(str, paginas)) + marca if paginas else "—" + marca)
+            print(f"| {p['id']} | {p['tipo']} | {', '.join(map(str, p['paginas_esperadas'])) or '—'} | "
+                  + " | ".join(celdas) + " |")
+
+    total = sum(p["tipo"] != "fuera" for p in preguntas)
+    print(f"\nRecall@2 (sin la de fuera, {total} preguntas): "
+          + " · ".join(f"{m} {n}/{total}" for m, n in aciertos.items()))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="zca-indice")
     sub = parser.add_subparsers(required=True)
@@ -72,6 +131,19 @@ def main() -> None:
     p.add_argument("--version", default=f"{date.today().isoformat()}.1")
     p.add_argument("--objetivo", type=int, default=130)
     p.set_defaults(accion=_construir)
+
+    p = sub.add_parser("evaluar", help="recall@2 de FTS5, vectores e híbrida con la batería")
+    p.add_argument("--bateria", default="docs/bateria-manual.yaml")
+    p.add_argument("--indice", default="models/acs355.sqlite")
+    p.add_argument("--e5", default="http://127.0.0.1:8090")
+    p.add_argument("--k", type=int, default=10, help="candidatos de cada método antes de fusionar")
+    p.set_defaults(accion=_evaluar)
+
+    p = sub.add_parser("vectores-bateria", help="vectores de las preguntas para el paso 2.3")
+    p.add_argument("--bateria", default="docs/bateria-manual.yaml")
+    p.add_argument("--e5", default="http://127.0.0.1:8090")
+    p.add_argument("--salida", default="models/bateria-vectores.json")
+    p.set_defaults(accion=_vectores_bateria)
 
     args = parser.parse_args()
     args.accion(args)
