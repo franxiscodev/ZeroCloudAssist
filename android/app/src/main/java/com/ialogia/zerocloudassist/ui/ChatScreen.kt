@@ -45,6 +45,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -97,7 +99,16 @@ fun ChatScreen() {
                 }
             }
         }
-        Composer(prompt, onChange = { prompt = it }, onAsk = { if (Assistant.generate(prompt)) prompt = "" })
+        // Al preguntar se cierra el teclado: si no, tapa media pantalla con la tarjeta y las fuentes.
+        val keyboard = LocalSoftwareKeyboardController.current
+        val focus = LocalFocusManager.current
+        Composer(prompt, onChange = { prompt = it }, onAsk = {
+            if (Assistant.generate(prompt)) {
+                prompt = ""
+                keyboard?.hide()
+                focus.clearFocus()
+            }
+        })
     }
 }
 

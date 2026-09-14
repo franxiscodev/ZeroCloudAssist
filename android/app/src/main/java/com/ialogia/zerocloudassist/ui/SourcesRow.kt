@@ -1,8 +1,12 @@
 package com.ialogia.zerocloudassist.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -60,12 +64,16 @@ fun PageChip(page: Int, color: Color = ZcaColors.amber, selected: Boolean = fals
     )
 }
 
-/** El texto del manual de una fuente, con su página y capítulo. */
+/** El texto del manual de una fuente, con su página y capítulo. Al abrirse, la vista baja hasta él. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FragmentBox(source: Source) {
     val shape = RoundedCornerShape(8.dp)
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(source) { requester.bringIntoView() }
     Column(
-        Modifier.fillMaxWidth().clip(shape).background(ZcaColors.surface).border(1.dp, ZcaColors.line, shape)
+        Modifier.bringIntoViewRequester(requester)
+            .fillMaxWidth().clip(shape).background(ZcaColors.surface).border(1.dp, ZcaColors.line, shape)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
