@@ -29,6 +29,12 @@ Manual: `manuales/EN_ACS355_UM_E_A5.pdf` (440 p.).
   "0009 MOT OVERTEMP" y juntos contienen la entrada entera. FTS5 `MATCH '"0009"'` los devuelve,
   junto con otros tres chunks que mencionan 0009 (pp. 250, 269, 354).
 
+## Batería (paso 1.10)
+
+`docs/bateria-manual.yaml`: 12 preguntas (4 códigos, 3 síntomas, 2 seguridad, 2 parámetros, 1
+fuera del manual), cada página esperada comprobada en el texto del PDF. **Aprobada por Francisco
+el 2026-09-14, antes de medir** ("aprobada", sin cambios).
+
 ## Incidencias
 
 Escritas en el momento, en el orden en que pasaron.
@@ -77,3 +83,54 @@ Escritas en el momento, en el orden en que pasaron.
    lista de los chunks. Tal como está, G4 daría 1/2 en la tarjeta de seguridad. No se cambia nada
    ahora (es de E3); queda para decidir: ampliar los disparadores (p. ej. `ventilador`, `cambi`,
    `sustitu` en la pregunta, `warning!` o `disconnect it from` en los chunks) o sustituir B09.
+6. **G3 da 4/11 con la híbrida: NO-GO según §3 (paso 1.11).** Primera medida, con la batería ya
+   aprobada. Antes de dar el número por bueno se descartó un fallo propio (`systematic-debugging`):
+   - Vectores alineados con sus chunks: re-vectorizados 6 al azar, coseno 0,99998–1,00000.
+   - **Chunks imán:** restos cortos de pantallas del panel y cabeceras sueltas atraen las
+     preguntas. El id 238 (p. 97, 41 tokens: `EXIT 00:00 LOC HELP SAVE…`) sale en el top-2 de
+     vectores en 6 de las 12; el id 1219 (p. 359, 15 tokens, la cabecera de la tabla de fallos) en
+     3. e5 comprime las similitudes (0,77–0,84): ganan por centésimas.
+   - **FTS5 encuentra el código pero no su entrada:** "0009" está en 5 chunks y la entrada
+     "0009 MOT OVERTEMP" queda 3.ª por bm25, detrás de chunks que solo la mencionan (pp. 250,
+     354). "2001" choca con el parámetro 2001 y la alarma queda 13.ª de 19.
+   - El índice no tiene fallos: el 4/11 es de la búsqueda tal como se diseñó.
+   - Hipótesis probadas **una a una**, en un script aparte, sin tocar `tools/` (recall@2 de 11):
+
+     | Variante | FTS5 | Vectores | Híbrida | Fallos de la híbrida |
+     | --- | --- | --- | --- | --- |
+     | Base (lo medido) | 3 | 3 | **4** | B01 B02 B03 B04 B05 B08 B09 |
+     | H1a: vectores centrados (quitar la media) | 3 | 3 | 4 | B01 B02 B03 B04 B05 B07 B08 |
+     | H1b: sin chunks de menos de 40 tokens | 3 | 2 | 3 | B01 B02 B03 B04 B05 B06 B08 B09 |
+     | **H2: en FTS5, primero los chunks que empiezan por el término** | 4 | 3 | **7** | B02 B05 B08 B09 |
+     | H1a + H2 | 4 | 3 | 7 | B02 B05 B07 B08 |
+
+     H1 (imanes) se descarta: quitar los imanes no mejora los vectores. El cuello de botella es que
+     e5-small empareja mal la pregunta coloquial en español con el inglés del manual (página
+     correcta en los puestos 12–103 para B01, B02, B04, B05, B08, B10). H2 sí: la entrada que
+     define el código es la que empieza por él. Quedan: B02 (A2001 frente al parámetro 2001: los
+     dos empiezan por "2001"), B05 (armario caliente), B08 (bus de continua) y B09 (ventilador, en
+     el puesto 3 de vectores).
+   - Aviso de método: H2 salió de mirar los fallos de esta misma batería. Es una regla general
+     (no ajustada pregunta a pregunta), pero 11 preguntas son pocas: cualquier ajuste debería
+     validarse con preguntas nuevas que no se hayan visto al ajustar.
+
+## Decisión según §3 (paso 1.14)
+
+**NO-GO: 4/11** con la búsqueda híbrida del plan (umbral NO-GO ≤ 6). FTS5 solo 3/11, vectores
+solos 3/11.
+
+Recomendación de Claude (decide Francisco): tratarlo como el replanteo que prevé §3, pero acotado
+a lo que dicen los datos, sin traducir con Qwen (3–4 s más de TTFT):
+
+1. **H2** en Python y en Kotlin (misma tabla de casos): entrada que empieza por el código primero.
+2. **Glosario taller → manual** pequeño y fijo aplicado a la pregunta antes de FTS5 (p. ej.
+   "ventilador" → `fan`, "bus de continua" → `"DC bus" OR "intermediate circuit"`, "armario
+   caliente" → `"ambient temperature"`), determinista y sin coste de tiempo; y el prefijo de la
+   pregunta ("alarma A2001" / "fallo F0009") para separar alarmas, fallos y parámetros.
+3. Medir **una vez** con esta batería y con **4–6 preguntas nuevas** que escriba Francisco sin ver
+   los resultados, para no dar por bueno algo ajustado a las 11.
+
+Alternativas: aceptar H2 sola como "GO con reservas" (7/11) y seguir; o volver a la traducción de
+la consulta con Qwen, que el plan descartó por el tiempo.
+
+**Gate G3:** pendiente de Francisco.
