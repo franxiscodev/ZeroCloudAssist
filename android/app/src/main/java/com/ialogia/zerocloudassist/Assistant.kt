@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.arm.aichat.AiChat
+import com.arm.aichat.Embedder
 import com.arm.aichat.InferenceEngine
 import com.arm.aichat.isModelLoaded
 import kotlinx.coroutines.CancellationException
@@ -31,6 +32,7 @@ import kotlinx.coroutines.withContext
  */
 object Assistant {
     const val MODEL_FILE = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
+    private const val E5_FILE = "multilingual-e5-small-q8_0.gguf"
     private const val MAX_TOKENS = 200
 
     // Protocolo fijo del plan 01, §5.
@@ -136,6 +138,22 @@ object Assistant {
         Log.i(TAG, "Modelo cargado en $loadMs ms")
         status = "Listo · %s".format(MODEL_FILE)
         ready = true
+
+        // e5 después del chat: el motor ya ha cargado la librería y los backends de ggml.
+        val e5 = ModelLocation.modelPath(appContext.getExternalFilesDir(null)!!, E5_FILE)
+        if (!e5.exists()) {
+            Log.w(TAG, "Falta ${e5.path}: cópialo con tools/cargar-movil.ps1")
+        } else {
+            val t0 = SystemClock.elapsedRealtime()
+            val loaded = Embedder.load(e5.path)
+            Log.i(TAG, "e5 %s en %d ms".format(if (loaded) "cargado" else "NO cargado",
+                SystemClock.elapsedRealtime() - t0))
+        }
+
+        if (DebugChecks.enabled(appContext)) withContext(Dispatchers.IO) {
+            DebugChecks.manualFts(appContext.getExternalFilesDir(null)!!)
+            DebugChecks.embeddings(appContext.getExternalFilesDir(null)!!)
+        }
     }
 
     private suspend fun answer(prompt: String) {
@@ -168,7 +186,10 @@ object Assistant {
         val state = engine.state.value
         if (state.isModelLoaded || state is InferenceEngine.State.Error) {
             try {
-                withContext(Dispatchers.IO) { engine.cleanUp() }
+                withContext(Dispatchers.IO) {
+                    Embedder.unload()
+                    engine.cleanUp()
+                }
             } catch (e: IllegalStateException) {
                 // El motor rechaza liberar en estados intermedios; mejor no liberar que cerrar la app.
                 Log.e(TAG, "No se pudo liberar el modelo en ${state.javaClass.simpleName}", e)
