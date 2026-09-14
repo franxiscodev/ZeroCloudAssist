@@ -133,4 +133,39 @@ a lo que dicen los datos, sin traducir con Qwen (3–4 s más de TTFT):
 Alternativas: aceptar H2 sola como "GO con reservas" (7/11) y seguir; o volver a la traducción de
 la consulta con Qwen, que el plan descartó por el tiempo.
 
-**Gate G3:** pendiente de Francisco.
+**Gate G3 (primera medida):** Francisco acepta la recomendación (2026-09-14: "me va tu
+recomendación"), y pide que Claude escriba las preguntas nuevas y cierre los pendientes. Orden
+para que el control valga: el ajuste (H2, glosario, prefijo) se escribe y se commitea **antes** de
+redactar las preguntas nuevas; las páginas de las preguntas nuevas se comprueban en el texto del
+PDF, sin pasar por el buscador; se mide una sola vez y el ajuste no se toca después. Límite: el
+glosario y las preguntas nuevas los escribe la misma persona (Claude), así que el control es más
+débil que con preguntas de Francisco.
+
+**Pendientes de la etapa, resueltos con Francisco el 2026-09-14:**
+
+- Entrada 0009 en dos trozos que empiezan por su cabecera (incidencia 3): se da por buena; el
+  paso 1.9 del plan se actualiza.
+- B09 sin tarjeta de seguridad (incidencia 5): se mantiene B09 y se amplían los disparadores de
+  los chunks en el plan (E3) con `instructions in chapter safety` y `disconnect it from the ac
+  power`, elegidos contando dónde aparecen en el índice: el primero en 5 chunks (pp. 49, 351,
+  372, 373, 425: instalación, diagnóstico, mantenimiento y apéndice STO), el segundo solo en la
+  p. 372 (cambio del ventilador). `warning!` se descartó: 38 chunks, saldría en preguntas de
+  parámetros. En la pregunta no se añade nada: "cambio" también está en "cambio el sentido de
+  giro" (B07) y daría falsos positivos.
+- Ajuste de la búsqueda, primera medida (diagnóstico de la incidencia 6):
+  - H2 se afina con los datos: la entrada 2001 de alarmas está en un chunk que empieza por la
+    cabecera de la tabla (`Alarm messages… CODE ALARM CAUSE WHAT TO DO`, `2001 OVERCURRENT`), no
+    por el código. La regla pasa a ser "primero los chunks con una **línea** que empieza por el
+    código", y, si la pregunta habla de fallo/alarma (o prefijo F/A) o de parámetro, primero los
+    del capítulo que corresponde (`Fault tracing` / `Actual signals and parameters`): separa la
+    alarma 2001 del parámetro 2001.
+  - De paso sale un fallo de `extraer.py`: el patrón de cabeceras de tabla no reconocía
+    `CODE ALARM CAUSE WHAT TO DO` (p. 353). Corregido con su caso de test.
+  - Glosario taller → manual en `docs/glosario-taller.yaml` (~45 entradas de vocabulario general),
+    que viaja en el `.sqlite` (tabla `glosario`): la app lo lee de ahí y no hay que duplicarlo en
+    Kotlin, solo la regla de coincidencia con la misma tabla de casos.
+  - Ajuste congelado en los commits `110bb2f`–`f1a09a4`; índice regenerado como
+    `meta.version = 2026-09-14.2` (1 478 chunks, glosario de 44 entradas).
+  - Preguntas de control en `docs/bateria-control.yaml` (C01–C07: 2 códigos, 2 síntomas, 1
+    seguridad, 1 parámetro, 1 fuera), escritas **después** de congelar el ajuste, con las páginas
+    comprobadas por búsqueda de texto en el PDF y commiteadas **antes** de medir.

@@ -1,0 +1,60 @@
+# Preguntas de control de G3: comprueban que el ajuste de la búsqueda (entrada que define el
+# código primero, glosario taller → manual, capítulo según fallo/parámetro) no está hecho a la
+# medida de las 11 preguntas de docs/bateria-manual.yaml.
+#
+# Escritas por Claude el 2026-09-14 DESPUÉS de commitear el ajuste (commits 110bb2f–f1a09a4) y
+# ANTES de pasarlas por el buscador. Páginas comprobadas con búsqueda de texto en el PDF, no con el
+# índice. Se miden una vez; el ajuste no se toca después de verlas. Límite: las escribe el mismo
+# autor que el glosario (Francisco lo pidió así).
+#
+# Mismo formato y rúbrica que la batería principal. Reparto: 2 codigo · 2 sintoma · 1 seguridad ·
+# 1 parametro · 1 fuera (6 cuentan para el recall).
+
+- id: C01
+  tipo: codigo
+  pregunta: "El variador se ha parado con el fallo F0006"
+  paginas_esperadas: [360]      # 0006 DC UNDERVOLT
+  riesgo: false
+  claves: ["DC UNDERVOLT", "tensión del circuito intermedio insuficiente", "revisar la alimentación y los fusibles", "controlador de subtensión (2006)"]
+
+- id: C02
+  tipo: codigo
+  pregunta: "En el panel pone A5012, ¿qué es?"
+  paginas_esperadas: [356]      # 5012, alarmas del panel básico
+  riesgo: false
+  claves: ["el sentido de giro está bloqueado", "permitir el cambio de sentido en el parámetro 1003 DIRECTION"]
+
+- id: C03
+  tipo: sintoma
+  pregunta: "La pantalla del panel dice que el variador no responde"
+  paginas_esperadas: [356, 362] # alarma 5001 (p. 356) y fallo 0010 PANEL LOSS (p. 362)
+  riesgo: false
+  claves: ["revisar la conexión del panel", "PANEL LOSS si se pierde la comunicación con el panel"]
+
+- id: C04
+  tipo: sintoma
+  pregunta: "El variador hace cada vez más ruido, ¿es normal?"
+  paginas_esperadas: [372]      # el ruido creciente de los rodamientos anuncia el fallo del ventilador
+  riesgo: false
+  claves: ["el ruido de los rodamientos del ventilador anuncia su fallo", "cambiar el ventilador", "solo repuestos de ABB"]
+
+- id: C05
+  tipo: seguridad
+  pregunta: "Voy a revisar el cableado del motor, ¿qué hago antes?"
+  paginas_esperadas: [18]       # no trabajar en el cable del motor con alimentación; 5 minutos; multímetro
+  riesgo: true
+  claves: ["cortar la alimentación", "esperar 5 minutos a que se descarguen los condensadores", "comprobar con multímetro que no hay tensión"]
+
+- id: C06
+  tipo: parametro
+  pregunta: "¿Cómo limito la velocidad máxima del motor?"
+  paginas_esperadas: [222, 223] # 2002 MAXIMUM SPEED (p. 222, control vectorial); 2008 MAXIMUM FREQ (p. 223, escalar)
+  riesgo: false
+  claves: ["parámetro 2002 MAXIMUM SPEED (control vectorial)", "parámetro 2008 MAXIMUM FREQ (control escalar)"]
+
+- id: C07
+  tipo: fuera
+  pregunta: "¿Cómo conecto el variador al móvil por Bluetooth?"
+  paginas_esperadas: []         # "bluetooth", "wifi", "wi-fi" no aparecen en el manual (comprobado)
+  riesgo: false
+  claves: ["No aparece en el manual", "sin inventar datos concretos"]
