@@ -1,0 +1,124 @@
+# Glosario taller (español) → manual del ACS355 (inglés) para la búsqueda literal (FTS5).
+#
+# Por qué: la búsqueda por vectores (e5-small) empareja mal la pregunta coloquial en español con
+# el texto inglés del manual (G3, 2026-09-14: 3/11). Si la pregunta contiene un término de `es`, la
+# consulta FTS5 añade sus `en`. Determinista y sin coste de tiempo en el móvil.
+#
+# Escrito el 2026-09-14 como vocabulario general de taller, ANTES de redactar las preguntas de
+# control y sin mirar sus resultados. Lo revisa Francisco. Viaja dentro del .sqlite (tabla
+# glosario): cambiarlo = regenerar el índice, sin tocar la app.
+#
+# Reglas (las comprueba leer_glosario):
+#   es: minúsculas y sin tildes; palabra entera, o prefijo si acaba en * ("calient*" casa con
+#       "caliente", "calienta"); puede ser una frase ("bus de continua").
+#   en: sintaxis FTS5 en minúsculas: palabra, prefijo (fan*) o frase entre comillas ("dc bus").
+#
+# capitulos: dónde están las entradas que definen un código. Si la pregunta habla de un fallo o
+# alarma (o de un parámetro), la entrada de ese capítulo va primero.
+
+capitulos:
+  codigo: Fault tracing
+  parametro: Actual signals and parameters
+
+terminos:
+  # Temperatura y refrigeración
+  - es: [calient*, calor, sobrecalent*, temperatura]
+    en: [temperature, overtemp*]
+  - es: [ventilador*, ventilacion]
+    en: [fan*]
+  - es: [refrigera*, enfria*]
+    en: [cooling]
+  - es: [armario, cuadro electrico]
+    en: [cabinet, enclosure, ambient]
+
+  # Tensión, corriente y bus de continua
+  - es: [bus de continua, tension continua, tension de continua, circuito intermedio]
+    en: ['"dc bus"', '"intermediate circuit"', '"dc voltage"']
+  - es: [condensador*]
+    en: [capacitor*]
+  - es: [sobretension*]
+    en: [overvolt*]
+  - es: [subtension*, baja tension, falta de tension]
+    en: [undervolt*]
+  - es: [sobrecorriente, sobreintensidad]
+    en: [overcurrent]
+  - es: [sobrecarga*]
+    en: [overload*]
+  - es: [cortocircuito]
+    en: ['"short circuit"']
+  - es: [tierra, derivacion]
+    en: [earth, ground]
+  - es: [aislamiento]
+    en: [insulation]
+  - es: [tension]
+    en: [voltage]
+  - es: [corriente, intensidad]
+    en: [current]
+  - es: [fusible*]
+    en: [fuse*]
+
+  # Medir y comprobar
+  - es: [medir, mido, mide, medida, medicion]
+    en: [measur*]
+  - es: [multimetro, polimetro, tester]
+    en: [multimeter]
+
+  # Frenado, rampas y giro
+  - es: [frena*, frenado, freno*]
+    en: [brak*, decelerat*]
+  - es: [resistencia de frenado, chopper]
+    en: ['"brake resistor"', '"brake chopper"']
+  - es: [acelera*, aceleracion]
+    en: [accelerat*]
+  - es: [decelera*, desacelera*, deceleracion]
+    en: [decelerat*]
+  - es: [rampa*]
+    en: [ramp*]
+  - es: [al reves, sentido de giro, gira*, giro]
+    en: [direction, rotation]
+  - es: [fase*]
+    en: [phase*]
+  - es: [velocidad]
+    en: [speed]
+  - es: [frecuencia]
+    en: [frequency]
+  - es: [par, par motor]
+    en: [torque]
+
+  # Motor y placa
+  - es: [placa de caracteristicas, placa del motor]
+    en: ['"rating plate"', nominal]
+  - es: [cable del motor, cables del motor]
+    en: ['"motor cable"']
+  - es: [encoder]
+    en: [encoder]
+
+  # Entradas, salidas, panel y comunicaciones
+  - es: [entrada analogica, senal analogica]
+    en: ['"analog input"']
+  - es: [entrada digital]
+    en: ['"digital input"']
+  - es: [rele*]
+    en: [relay*]
+  - es: [panel, teclado, pantalla, display]
+    en: ['"control panel"', display]
+  - es: [comunicacion, bus de campo, modbus, profibus]
+    en: [fieldbus, communication]
+
+  # Maniobras y mantenimiento
+  - es: [rearmar, rearme, resetear, reset, reiniciar]
+    en: [reset]
+  - es: [arranca*, arranque, puesta en marcha]
+    en: [start*]
+  - es: [parar, parada, se para]
+    en: [stop*]
+  - es: [mantenimiento]
+    en: [maintenance]
+  - es: [paro seguro, sto]
+    en: ['"safe torque off"']
+  - es: [ruido*]
+    en: [noise]
+  - es: [humedad, condensacion]
+    en: [humidity, condensation]
+  - es: [polvo, suciedad]
+    en: [dust]
