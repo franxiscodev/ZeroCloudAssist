@@ -43,7 +43,7 @@ object Assistant {
 
     var status by mutableStateOf("Iniciando…")
         private set
-    var output by mutableStateOf("")
+    var entries by mutableStateOf(emptyList<Entry>())
         private set
     var metrics by mutableStateOf("")
         private set
@@ -75,18 +75,27 @@ object Assistant {
         exclusive(cancelRunning = true) { release() }
     }
 
-    fun generate(prompt: String) {
-        if (!ready || generating || prompt.isBlank()) return
+    /** Devuelve `false` si la pregunta no se ha aceptado (modelo sin cargar, generando, vacía). */
+    fun generate(prompt: String): Boolean {
+        if (!ready || generating || prompt.isBlank()) return false
         generating = true
-        output = ""
         metrics = ""
+        entries = Conversation.ask(entries, prompt)
         exclusive {
             try {
-                answer(prompt)
+                answer(prompt.trim())
+            } catch (e: CancellationException) {
+                entries = Conversation.interrupt(entries)
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Error al generar", e)
+                entries = Conversation.interrupt(entries)
+                status = "Error al generar: ${e.message ?: e.javaClass.simpleName}"
             } finally {
                 generating = false
             }
         }
+        return true
     }
 
     private fun exclusive(cancelRunning: Boolean = false, block: suspend () -> Unit) {
@@ -136,7 +145,7 @@ object Assistant {
         engine.sendUserPrompt(prompt, MAX_TOKENS).collect { piece ->
             if (tokens == 0) firstTokenAt = SystemClock.elapsedRealtime()
             tokens++
-            output += piece
+            entries = Conversation.append(entries, piece)
         }
         if (tokens == 0) return
 
@@ -158,6 +167,7 @@ object Assistant {
         val state = engine.state.value
         if (state.isModelLoaded || state is InferenceEngine.State.Error) {
             withContext(Dispatchers.IO) { engine.cleanUp() }
+            entries = Conversation.released(entries)
             Log.i(TAG, "Modelo liberado")
         }
         status = "Modelo liberado"
