@@ -51,11 +51,14 @@ Dos módulos Gradle:
 - **`lib`**: copia del módulo `lib` del ejemplo oficial `examples/llama.android` de llama.cpp
   (tag b10941), compilada contra el submódulo `third_party/llama.cpp` (`LLAMA_SRC` en
   `lib/src/main/cpp/CMakeLists.txt`). Se copió en vez de referenciar el del submódulo porque sus
-  constantes no se pueden configurar desde Kotlin. Cambios respecto al original, marcados con
-  comentario `ZeroCloudAssist:` en `ai_chat.cpp`: 6 hilos, `n_ctx` 2048, temperatura 0,2 y el
-  cálculo del límite de tokens corregido. Lo demás se mantiene tal cual, incluidos los nombres de
-  paquete `com.arm.aichat.*`, porque los símbolos JNI (`Java_com_arm_aichat_internal_...`)
-  dependen de ellos.
+  constantes no se pueden configurar desde Kotlin. Todos los cambios respecto al original llevan
+  un comentario `ZeroCloudAssist:` (en `ai_chat.cpp`, `InferenceEngine.kt` e
+  `InferenceEngineImpl.kt`). Son dos tipos. Constantes: 6 hilos, `n_ctx` 2048 y temperatura 0,2.
+  Correcciones de fallos del ejemplo: el límite de tokens, el desplazamiento de contexto, el
+  cierre de las respuestas cortadas, la liberación tras un error y `lastResponseTruncated`. Lo
+  demás se mantiene tal cual, incluidos los nombres de paquete `com.arm.aichat.*`, porque los
+  símbolos JNI (`Java_com_arm_aichat_internal_...`) dependen de ellos. Buscar `ZeroCloudAssist:`
+  antes de actualizar llama.cpp o de volver a copiar el ejemplo.
 - **`app`** (`com.ialogia.zerocloudassist`, Compose):
   - `Assistant` es un `object` con vida de proceso que posee el `InferenceEngine` y todo el
     estado observable de la UI. Carga en `onStart` y libera en `onStop`. Todas las operaciones del
