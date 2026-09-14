@@ -14,6 +14,19 @@ El Q4_0 se añadió tras la medición en el A53: el procesado del prompt result�
 botella, y la reorganización de pesos ("weight repacking") de llama.cpp en ARM está pensada
 sobre todo para Q4_0. Mismo modelo y misma fuente oficial que el Q4_K_M.
 
+## Índice del manual (plan 02)
+
+Generados el 2026-09-14 en `models/`. Fijados a un commit de Hugging Face para poder repetirlos.
+
+| Fichero | Bytes | SHA256 | Origen |
+| --- | --- | --- | --- |
+| `multilingual-e5-small-q8_0.gguf` | 132 441 728 | `7605c7f0022cb972dbb8b05e69ff65ac0db4a3b4756f0f8a88aa8280485c5505` | `intfloat/multilingual-e5-small` @ `614241f622f53c4eeff9890bdc4f31cfecc418b3` (MIT), convertido con `tools/convertir_e5.py` (conversor del submódulo b10941) |
+| `qwen2.5-tokenizer.json` | 7 031 645 | `c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539` | `tokenizer.json` de `Qwen/Qwen2.5-1.5B-Instruct` @ `989aa7980e4cf806f80c7fef2b1adb7bc71aa306` (Apache 2.0) |
+
+e5 no se convierte con `convert_hf_to_gguf.py` tal cual (cuerpo BERT con tokenizador de XLM-R): ver
+el docstring de `tools/convertir_e5.py`. `tools/verificar_e5.py` compara el GGUF servido por
+`llama-server` con la referencia de `transformers`: coseno mínimo 0,99984 en Q8_0.
+
 ## Origen
 
 | Modelo | URL |
