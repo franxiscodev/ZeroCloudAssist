@@ -305,6 +305,14 @@ minutos en una charla: basta con que los códigos, alarmas y parámetros respond
 es grave para esa demo queda anotado abajo para cuando, validado el MVP, se vaya a producción. No
 se hace el experimento con e5-base ahora.
 
+**Incidencia 8. El job `tools` falló en la CI del PR #7 en 3 s (paso 1.13).** Error del runner:
+`Unable to resolve action astral-sh/setup-uv@v10, unable to find version v10`. Se había comprobado
+la última versión (`v10.1.0`), pero se supuso por analogía con `actions/checkout@v7` que existía
+la etiqueta mayor flotante `v10`; `astral-sh/setup-uv` solo publica versiones completas (`v10.0.0`,
+`v10.0.1`, `v10.1.0`). La réplica en Docker no lo podía ver: prueba los tests, no la resolución de
+acciones de GitHub. Arreglo: `@v10.1.0`. Para la próxima acción nueva, comprobar la etiqueta exacta
+con `gh api repos/<owner>/<acción>/git/ref/tags/<tag>` antes de escribirla.
+
 ## Pendientes para producción (no bloquean el MVP)
 
 Cada punto con el dato que lo sostiene, para no redescubrirlo:
