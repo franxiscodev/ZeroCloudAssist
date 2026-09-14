@@ -1,0 +1,22 @@
+name: CI
+
+# Sin filtros de paths: android-unit es un check obligatorio en main, y un check obligatorio que
+# no corre deja bloqueados los PR de solo documentación.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  android-unit:
+    runs-on: ubuntu-latest
+    steps:
+      # Sin submódulos: los tests unitarios de :app no compilan la parte nativa de :lib.
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6
+      - run: bash gradlew :app:testDebugUnitTest
+        working-directory: android
