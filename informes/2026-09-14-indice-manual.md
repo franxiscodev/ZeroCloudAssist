@@ -237,3 +237,65 @@ se da con 5–6 preguntas nuevas escritas por Francisco sin ver resultados.
 Montaje, igual que lo haría el móvil: Qwen2.5-1.5B-Instruct Q4_K_M con el prompt de sistema de §6
 y un turno de usuario que pide la traducción; un servidor a la vez en el puerto 8090 (primero Qwen
 traduce y se guarda, luego e5 evalúa).
+
+**Incidencia 7. Con el prompt de sistema de §6, Qwen no traduce (primera prueba).** De 18
+preguntas, 12 vuelven en español (reescritas), C05 se **responde** en vez de traducirse ("Before
+checking the wiring of the motor, you should disconnect the power supply.") y dos se traducen mal
+(B04 "A0007 appears on the variator screen", B06 "Why does the variator discharge when the motor
+stops?"). Hipótesis: "Responde siempre en español" del sistema pesa más que la petición del turno.
+Coste medido: ~140–150 tokens de prompt (unos 100 del sistema, que en el móvil estarían en caché) y
+10–22 de salida. Se prueban por separado: T1, el mismo sistema con una petición que declara la
+excepción al idioma; T2, un prompt de sistema propio de traductor.
+
+Resultado de las dos variantes (18 preguntas, temperatura 0,2, semilla 42; ficheros
+`models/traducciones-{manual,control}-{t1,t2}.json`):
+
+| Variante | En inglés | Fieles | Fallos | Tokens de prompt + salida |
+| --- | --- | --- | --- | --- |
+| Base (§6 + petición en inglés) | 6/18 | 3 | 12 en español, C05 respondida, B04 y B06 mal | ~140–150 + 10–22 |
+| T1 (§6 + excepción declarada) | 9/18 | 7 | 6 "No aparece en el manual", 3 en español, C05 respondida | ~166–177 + 8–22 |
+| **T2 (sistema de traductor)** | **18/18** | **16** | B05 → "thermostat"; C05 medio respondida | **~56–67 + 10–23** |
+
+T2 es la única que traduce. En el móvil implica un segundo prefijo de sistema (el de traductor,
+~40 tokens) además del de §6: o dos secuencias en la caché KV, o reprocesar uno de los dos en cada
+pregunta. Coste estimado de la traducción en el A53 (35 tok/s de prompt, ~8,5 tok/s de salida):
+~0,6–1,7 s de prompt + ~1,2–2,7 s de salida ≈ **2–4 s** más de TTFT, más lo que cueste el cambio de
+prefijo (decisión de E2).
+
+Búsqueda con las traducciones de T2 (vectores de "query: " + traducción; baterías de desarrollo,
+17 preguntas que cuentan):
+
+| Variante | Principal | Control | Total | Vectores solos |
+| --- | --- | --- | --- | --- |
+| Sin traducción, FTS5 con glosario (lo congelado) | 8/11 | 2/6 | 10/17 | 3/11 · 3/6 |
+| T2 + FTS5 solo literales | 7/11 | 3/6 | 10/17 | 2/11 · 2/6 |
+| T2 + FTS5 con glosario | 9/11 | 2/6 | 11/17 | 2/11 · 2/6 |
+| T2 + FTS5 con palabras de la traducción | 8/11 | 3/6 | 11/17 | 2/11 · 2/6 |
+
+**La hipótesis queda falsada:** con la pregunta en inglés, los vectores de e5-small van **peor**
+(2/11, 2/6) que con la pregunta en español (3/11, 3/6). El eslabón débil no es el idioma: es la
+búsqueda por vectores en sí sobre este manual (tablas con las columnas intercaladas, entradas
+cortas y parecidas entre sí). La traducción daría como mucho +1 de 17 a cambio de 2–4 s de TTFT y
+un segundo prefijo en la caché: **no compensa**.
+
+Lo que sí es sólido en las dos baterías: **los códigos, 8 de 8** (B01–B04, C01, C02 y los
+parámetros B10 por número), con FTS5 y la entrada que define el código primero.
+
+Van tres rondas de arreglos (ajuste H2 + glosario, traducción con §6, traducción T2); por método
+(`systematic-debugging`), no se prueba un cuarto arreglo sin replantear con Francisco.
+
+## Decisión según §3, tercera medida (paso 1.14)
+
+Con lo mejor sin traducción: principal 8/11, control 2/6. **Recomendación de Claude:**
+
+1. Descartar la traducción.
+2. Seguir con FTS5 + entrada que define el código + glosario, que es fiable en códigos y
+   parámetros por número.
+3. Antes de dar G3, **un único experimento acotado (≤ 1 h, solo PC)** con el otro lado del
+   problema: un modelo de vectores más capaz, `multilingual-e5-base` (misma familia y prefijos,
+   ~280 MB en Q8, en el móvil con mmap), manteniendo todo lo demás igual.
+4. El veredicto se da con las 5–6 preguntas nuevas de Francisco. Si e5-base no mejora, G3 "con
+   reservas" acotado: la demo promete códigos, alarmas y parámetros, y lo coloquial queda como
+   ayuda con las fuentes a la vista.
+
+**Gate G3:** pendiente de Francisco.
