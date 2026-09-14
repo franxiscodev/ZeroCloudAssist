@@ -15,7 +15,7 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-_CABECERA_DE_TABLA = re.compile(
+CABECERA_DE_TABLA = re.compile(
     r"(?:ALARM )?CODE (?:FAULT )?CAUSE WHAT TO DO|No\. Name/Value Description (?:Def/)?FbEq"
 )
 _ETIQUETAS_DE_TABLA = {"All parameters", "Actual signals"}
@@ -43,7 +43,7 @@ def limpiar_cabecera(texto: str, numero: int) -> str:
     lineas = _lineas(texto)
     if lineas and _es_cabecera(lineas[0], numero):
         lineas = lineas[1:]
-    if lineas and _CABECERA_DE_TABLA.fullmatch(lineas[-1]):
+    if lineas and CABECERA_DE_TABLA.fullmatch(lineas[-1]):
         lineas = lineas[:-1]
         if lineas and lineas[-1] in _ETIQUETAS_DE_TABLA:
             lineas = lineas[:-1]
