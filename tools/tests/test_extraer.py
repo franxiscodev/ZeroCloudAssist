@@ -34,6 +34,7 @@ def test_no_confunde_la_cabecera_de_otra_pagina():
     [
         "CODE FAULT CAUSE WHAT TO DO",
         "ALARM CODE CAUSE WHAT TO DO",
+        "CODE ALARM CAUSE WHAT TO DO",  # tabla de alarmas, p. 353
         "All parameters\nNo. Name/Value Description Def/FbEq",
         "Actual signals\nNo. Name/Value Description FbEq",
     ],

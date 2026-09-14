@@ -16,7 +16,7 @@ from pathlib import Path
 from pypdf import PdfReader
 
 CABECERA_DE_TABLA = re.compile(
-    r"(?:ALARM )?CODE (?:FAULT )?CAUSE WHAT TO DO|No\. Name/Value Description (?:Def/)?FbEq"
+    r"(?:ALARM )?CODE (?:FAULT |ALARM )?CAUSE WHAT TO DO|No\. Name/Value Description (?:Def/)?FbEq"
 )
 _ETIQUETAS_DE_TABLA = {"All parameters", "Actual signals"}
 _USO_PRIVADO = re.compile("[-]")  # símbolos de la fuente de iconos (p. ej. U+F06E)
