@@ -32,7 +32,7 @@ fun MarkdownText(text: String, modifier: Modifier = Modifier) {
                     Text(
                         if (block.ordered) "${block.number}." else "•",
                         style = ZcaType.code.copy(fontWeight = FontWeight.SemiBold, color = ZcaColors.amber, lineHeight = 22.sp),
-                        modifier = Modifier.width(24.dp),
+                        modifier = Modifier.width(32.dp),  // "10." cabe en una línea (con 24 dp se partía)
                     )
                     Text(block.spans.annotated(), style = ZcaType.answer, modifier = Modifier.weight(1f))
                 }
