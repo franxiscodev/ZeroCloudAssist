@@ -111,6 +111,18 @@ internal class InferenceEngineImpl private constructor(
     private var _lastResponseTruncated = false
     override val lastResponseTruncated: Boolean get() = _lastResponseTruncated
 
+    // ZeroCloudAssist: caché KV de vuelta al final del prompt de sistema (ai_chat.cpp).
+    @FastNative
+    private external fun resetToSystemPrompt()
+
+    override suspend fun resetConversation() =
+        withContext(llamaDispatcher) {
+            check(_state.value is InferenceEngine.State.ModelReady) {
+                "Cannot reset conversation in ${_state.value.javaClass.simpleName}!"
+            }
+            resetToSystemPrompt()
+        }
+
     @FastNative
     private external fun unload()
 

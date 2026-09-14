@@ -160,6 +160,8 @@ object Assistant {
         val sentAt = SystemClock.elapsedRealtime()
         var firstTokenAt = 0L
         var tokens = 0
+        // Cada pregunta parte del prompt de sistema: el RAG no reutiliza el historial (plan 02).
+        engine.resetConversation()
         engine.sendUserPrompt(prompt, MAX_TOKENS).collect { piece ->
             if (tokens == 0) firstTokenAt = SystemClock.elapsedRealtime()
             tokens++
