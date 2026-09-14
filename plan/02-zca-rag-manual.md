@@ -373,7 +373,19 @@ CREATE TABLE chunks (
 CREATE VIRTUAL TABLE chunks_fts USING fts5(
   texto, content='chunks', content_rowid='id', tokenize='unicode61'
 );
+-- Añadido en E1 tras G3 (2026-09-14): glosario taller → manual, listas separadas por "|"
+CREATE TABLE glosario (es TEXT NOT NULL, en TEXT NOT NULL);
+-- meta gana capitulo_codigos='Fault tracing' y capitulo_parametros='Actual signals and parameters'
 ```
+
+**Búsqueda que sale de G3** (GO con reservas acotado al MVP; detalle y pendientes de producción en
+`informes/2026-09-14-indice-manual.md`): la consulta FTS5 = términos literales + expansiones del
+glosario (`docs/glosario-taller.yaml`, viaja en la tabla `glosario`); los resultados de FTS5 se
+piden **todos** por `rank`, se reordenan con `priorizar` (primero los chunks con una línea que
+empieza por el código y, si la pregunta es de fallo/alarma o de parámetro, los de su capítulo) y se
+recortan a 10; después RRF con los vectores y `seleccionar`. Las tablas de casos gemelas están en
+`tools/tests/test_terminos.py` y `tools/tests/test_evaluar.py`. La traducción de la pregunta con
+Qwen se midió y se descartó.
 
 ### Etapa 2 — Piezas nativas en el A53 (1 día)
 
@@ -415,9 +427,9 @@ mínimo, verde, commit). Tests con `JAVA_HOME=<Temurin 17> bash gradlew :app:tes
 
 | # | Paso | Fichero y tests | Verificación |
 | --- | --- | --- | --- |
-| 3.1 | Términos literales (**TDD**) | `rag/QueryTerms.kt`, tabla de casos de E1 | Verde |
-| 3.2 | Búsqueda pura (**TDD**) | `rag/ManualSearch.kt`: `cosineTopK`, `rrf`, `select`, con las tablas de E1 más: `cosineTopK` con 3 vectores de dimensión 2 devuelve el orden correcto | Verde |
-| 3.3 | Almacén | `rag/ManualStore.kt`: abre el `.sqlite` en solo lectura, lee `meta`, carga chunks y vectores (BLOB little-endian → `FloatArray` plano), `ftsIds(query, limit = 10)`. Sin tests JVM (SQLite nativo); se verifica en el móvil en 3.14 | — |
+| 3.1 | Términos literales (**TDD**) | `rag/QueryTerms.kt`, tabla de casos de E1, más el glosario (`expansions`, comparación sin tildes, palabra entera o prefijo con `*`) y `literalClass` (fallo/alarma frente a parámetro), con los casos de `tools/tests/test_terminos.py` | Verde |
+| 3.2 | Búsqueda pura (**TDD**) | `rag/ManualSearch.kt`: `cosineTopK`, `rrf`, `select` y `prioritize` (gemelo de `priorizar`), con las tablas de E1 y de `tools/tests/test_evaluar.py` más: `cosineTopK` con 3 vectores de dimensión 2 devuelve el orden correcto | Verde |
+| 3.3 | Almacén | `rag/ManualStore.kt`: abre el `.sqlite` en solo lectura, lee `meta`, carga chunks, vectores (BLOB little-endian → `FloatArray` plano) y la tabla `glosario`, `ftsIds(query)` devuelve todos por `rank` (se priorizan y recortan a 10 en `ManualSearch`). Sin tests JVM (SQLite nativo); se verifica en el móvil en 3.14 | — |
 | 3.4 | Comprobación de `meta` (**TDD**) | `rag/MetaCheck.kt`: `null` → `Missing` con el `adb push`; `esquema = "2"` → `Incompatible`; `embeddings` distinto del e5 esperado → `Incompatible`; correcto → `Ok(ManualMeta(manual, version))` | Verde |
 | 3.5 | Prompt (**TDD**) | `rag/PromptBuilder.kt`: `SYSTEM_PROMPT` (§6) y `userTurn(question, chunks)` con el formato exacto de §6. Tests: cadena exacta con 2 chunks; con 0 chunks lleva "(sin fragmentos)"; **nunca contiene "p. "**. Medir los tokens del prompt de sistema con `llama-tokenize` en el PC: ≤ 100 | Verde |
 | 3.6 | Seguridad (**TDD**) | `rag/SafetyRules.kt` con los casos de abajo | Verde |
@@ -617,6 +629,11 @@ empresa (introduce red y un secreto), visor del PDF en la página citada, varios
 memoria de conversación, tema claro, OCR de la pantalla del variador, voz, bitácoras de trabajo.
 El móvil con i8mm solo entra si G4 da NO-GO en tiempo. La tabla `meta` deja preparado el cambio
 de manual sin tocar la app.
+
+**Pendientes para producción, anotados en G3** (lista con datos en
+`informes/2026-09-14-indice-manual.md`): modelo de vectores más capaz (e5-base), preguntas
+coloquiales, batería escrita por técnicos ajenos, fusión RRF, extracción de tablas que respete el
+diseño y entradas largas partidas. El MVP es para una demo de 5 minutos en una charla.
 
 ---
 

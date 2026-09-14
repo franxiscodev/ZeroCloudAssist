@@ -298,4 +298,40 @@ Con lo mejor sin traducción: principal 8/11, control 2/6. **Recomendación de C
    reservas" acotado: la demo promete códigos, alarmas y parámetros, y lo coloquial queda como
    ayuda con las fuentes a la vista.
 
-**Gate G3:** pendiente de Francisco.
+**Gate G3: GO con reservas, acotado al MVP** (Francisco, 2026-09-14). Se descarta la traducción y
+se sigue con la búsqueda actual: FTS5 con términos literales, glosario taller → manual y la entrada
+que define el código primero, fusionada con los vectores de e5-small por RRF. El MVP se enseña en 5
+minutos en una charla: basta con que los códigos, alarmas y parámetros respondan bien. Lo que no
+es grave para esa demo queda anotado abajo para cuando, validado el MVP, se vaya a producción. No
+se hace el experimento con e5-base ahora.
+
+## Pendientes para producción (no bloquean el MVP)
+
+Cada punto con el dato que lo sostiene, para no redescubrirlo:
+
+1. **La búsqueda por vectores es el eslabón débil.** e5-small acierta 3/11 y 3/6 con la pregunta en
+   español, y 2/11 y 2/6 con la pregunta traducida al inglés: no es cuestión de idioma. En el
+   diagnóstico, la página correcta quedaba en los puestos 12–103. Primer experimento pendiente:
+   `multilingual-e5-base` (misma familia y prefijos, ~280 MB en Q8) con todo lo demás igual.
+2. **Preguntas coloquiales sin código: poco fiables.** Con la búsqueda congelada, las preguntas de
+   control aciertan 2/6. El glosario (`docs/glosario-taller.yaml`) solo ayuda si la pregunta usa la
+   palabra prevista ("cableado" no casa con "cable del motor"), y términos genéricos como "ruido" o
+   "velocidad" traen páginas donde la palabra abunda. Mejorarlo requiere preguntas reales de
+   técnicos, no escritas por quien ajusta.
+3. **La validación necesita preguntas de terceros.** Las 17 preguntas actuales (B01–B12, C01–C07)
+   ya se usaron para ajustar: sirven de desarrollo, no de veredicto. Para producción: una batería
+   escrita por técnicos que no hayan visto los resultados, y el recall medido solo con ella.
+4. **RRF pierde aciertos de los vectores cuando FTS5 mete ruido** (C03 y C06): un chunk que sale en
+   las dos listas, aunque sea abajo, suma más que el primero de una sola. Probar a dar preferencia
+   al primero de cada lista o un peso por lista, con la batería de terceros.
+5. **La extracción de tablas intercala columnas** (pypdf): los parámetros salen con el nombre
+   partido en dos líneas y el valor al final, y hay chunks basura de pantallas del panel (el id 238
+   de la p. 97 salía en el top-2 de 6 de 12 preguntas). Una extracción que respete el diseño de la
+   página daría chunks más limpios para los vectores.
+6. **Traducir la pregunta con Qwen, medido y descartado:** con el prompt de §6 no traduce (12/18 en
+   español); con un sistema propio de traductor sí (18/18), pero no mejora la búsqueda y costaría
+   2–4 s de TTFT y un segundo prefijo en la caché. Código conservado en `tools/zca_tools/traducir.py`
+   y `zca-indice traducir` para repetir la medida si cambia el modelo de vectores.
+7. **Entradas largas partidas** (la 0009 en dos trozos con la cabecera repetida): con el
+   presupuesto de 300 tokens por pregunta, las dos mitades caben juntas si salen las dos. En
+   producción, medir si conviene traer siempre la entrada completa cuando se busca por código.

@@ -1,8 +1,8 @@
-"""Traducción de la pregunta al inglés con Qwen, como la hará el móvil antes de buscar.
+"""Traducción de la pregunta al inglés con Qwen: EXPERIMENTO DESCARTADO en G3 (2026-09-14).
 
-Mismo prompt de sistema que la respuesta (§6 del plan 02, gemelo en `rag/PromptBuilder.kt`): en
-el móvil queda en la caché KV y la traducción es un turno más. Cliente de `/v1/chat/completions`
-de llama-server b10941 (compatible con OpenAI).
+Traduce (variante t2), pero la búsqueda no mejora: ver `informes/2026-09-14-indice-manual.md`.
+La app no lo usa. Se conserva para repetir la medida en producción si cambia el modelo de
+vectores. Cliente de `/v1/chat/completions` de llama-server b10941 (compatible con OpenAI).
 """
 
 from __future__ import annotations
