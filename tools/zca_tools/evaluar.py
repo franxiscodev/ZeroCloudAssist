@@ -6,6 +6,27 @@ apareció antes (orden estable).
 
 from __future__ import annotations
 
+import re
+
+
+def priorizar(
+    ids: list[int], textos: dict[int, str], capitulos: dict[int, str],
+    terminos: list[str], capitulo_preferido: str | None,
+) -> list[int]:
+    """Reordena los resultados de FTS5: primero los chunks con una línea que empieza por un término
+    literal (la entrada que lo define, no una mención), y de esos, primero los del capítulo
+    preferido. Dentro de cada grupo se conserva el orden de bm25."""
+    if not terminos:
+        return list(ids)
+    entradas = [re.compile(rf"(?m)^{re.escape(t)}(?:[ \t]|$)") for t in terminos]
+
+    def grupo(id_: int) -> int:
+        if not any(e.search(textos[id_]) for e in entradas):
+            return 2
+        return 0 if capitulo_preferido and capitulos[id_] == capitulo_preferido else 1
+
+    return sorted(ids, key=grupo)
+
 
 def rrf(rankings: list[list[int]], k: int = 60) -> list[int]:
     puntos: dict[int, float] = {}
