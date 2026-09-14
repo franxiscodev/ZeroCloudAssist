@@ -313,6 +313,11 @@ la etiqueta mayor flotante `v10`; `astral-sh/setup-uv` solo publica versiones co
 acciones de GitHub. Arreglo: `@v10.1.0`. Para la próxima acción nueva, comprobar la etiqueta exacta
 con `gh api repos/<owner>/<acción>/git/ref/tags/<tag>` antes de escribirla.
 
+**Paso 1.13 cerrado.** Tras el arreglo, la CI del PR #7 pasa (run 34867232510): `android-unit`
+1 min 15 s y `tools` 12 s, con **86 PASSED y 0 FAILED** en el log del runner (4 manuales
+descartados), lo mismo que la réplica en Linux. `tools` pasa a ser check obligatorio de `main`
+junto a `android-unit`, conservando PR obligatorio, `enforce_admins` y sin force-push ni borrado.
+
 ## Pendientes para producción (no bloquean el MVP)
 
 Cada punto con el dato que lo sostiene, para no redescubrirlo:
