@@ -40,6 +40,13 @@ kotlin {
     jvmToolchain(17)
 }
 
+// Cada test en el log, también en la CI: un job en verde no dice qué tests corrieron.
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}
+
 dependencies {
     implementation(project(":lib"))
 
