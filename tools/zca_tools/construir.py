@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 
+from zca_tools.terminos import EntradaGlosario
 from zca_tools.trocear import Chunk
 
 CLAVES_META = (
@@ -28,10 +29,15 @@ CREATE TABLE chunks (
 CREATE VIRTUAL TABLE chunks_fts USING fts5(
   texto, content='chunks', content_rowid='id', tokenize='unicode61'
 );
+-- Glosario taller → manual: formas en español y expansiones FTS5, cada lista separada por "|"
+CREATE TABLE glosario (es TEXT NOT NULL, en TEXT NOT NULL);
 """
 
 
-def construir(ruta: Path, chunks: list[Chunk], vectores: np.ndarray, meta: dict[str, str]) -> None:
+def construir(
+    ruta: Path, chunks: list[Chunk], vectores: np.ndarray, meta: dict[str, str],
+    glosario: list[EntradaGlosario] = (),
+) -> None:
     faltan = [clave for clave in CLAVES_META if clave not in meta]
     if faltan:
         raise ValueError(f"faltan claves en meta: {', '.join(faltan)}")
@@ -53,5 +59,8 @@ def construir(ruta: Path, chunks: list[Chunk], vectores: np.ndarray, meta: dict[
             ),
         )
         con.execute("INSERT INTO chunks_fts(chunks_fts) VALUES ('rebuild')")
+        con.executemany(
+            "INSERT INTO glosario VALUES (?, ?)", (("|".join(es), "|".join(en)) for es, en in glosario)
+        )
         con.commit()
     temporal.replace(ruta)

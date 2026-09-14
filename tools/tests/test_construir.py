@@ -67,6 +67,17 @@ def test_reconstruir_sustituye_el_fichero(tmp_path):
     assert consultar(ruta, "SELECT count(*) FROM chunks") == [(1,)]
 
 
+def test_guarda_el_glosario(tmp_path):
+    ruta = tmp_path / "manual.sqlite"
+    glosario = [(("ventilador",), ("fan*",)),
+                (("bus de continua", "tension continua"), ('"dc bus"', '"intermediate circuit"'))]
+    construir(ruta, CHUNKS, vectores(), META, glosario)
+    assert consultar(ruta, "SELECT es, en FROM glosario ORDER BY rowid") == [
+        ("ventilador", "fan*"),
+        ("bus de continua|tension continua", '"dc bus"|"intermediate circuit"'),
+    ]
+
+
 def test_rechaza_meta_incompleta(tmp_path):
     incompleta = {k: v for k, v in META.items() if k != "version"}
     with pytest.raises(ValueError, match="version"):
