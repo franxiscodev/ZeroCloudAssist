@@ -158,7 +158,7 @@ vectorización, la búsqueda y el procesado del prompt dentro.
 | Generación (mediana) | ≥ 8 tok/s | 5–8 | < 5 |
 | La pregunta fuera del manual no inventa | Sí | — | No |
 | Tarjeta de seguridad en las preguntas con `riesgo: true` | 2/2 | — | < 2 |
-| Minimizar 60 s y volver; sin cierres durante la batería | Sí | — | No |
+| Minimizar 60 s y volver; sin cierres durante la batería ni en la tanda de estrés (5.3) | Sí | — | No |
 
 Reglas de decisión:
 
@@ -193,6 +193,7 @@ tools/zca_tools/evaluar.py                   E1  RRF, presupuesto y recall@2 (ge
 tools/zca_tools/cli.py                       E1  `uv run zca-indice …`
 tools/tests/…                                E1  pytest
 tools/cargar-movil.ps1                       E3  adb push de los 3 ficheros + SHA256
+tools/estres-movil.ps1                       E3  20 preguntas seguidas por ADB sin reiniciar la app (guardia de estrés)
 android/lib/src/main/cpp/embedder.cpp        E2  JNI de embeddings (ZeroCloudAssist:)
 android/lib/src/main/cpp/ai_chat.cpp         E2  + resetToSystemPrompt (ZeroCloudAssist:)
 android/lib/src/main/cpp/CMakeLists.txt      E2  + embedder.cpp
@@ -429,6 +430,7 @@ mínimo, verde, commit). Tests con `JAVA_HOME=<Temurin 17> bash gradlew :app:tes
 | 3.13 | Carga al móvil | `tools/cargar-movil.ps1` (PowerShell): `adb push` de `models/qwen2.5-1.5b-instruct-q4_k_m.gguf` y `models/multilingual-e5-small-q8_0.gguf` a `files/models/`, y de `models/acs355.sqlite` a `files/manuales/`; compara `adb shell sha256sum` con `Get-FileHash`. Solo copia lo que falta o ha cambiado | Tres líneas `OK <sha>` |
 | 3.14 | Verificación en el A53 | 3 preguntas de la batería con la UI mínima; logcat `ZCA`, `ZCA_METRICS`, `ZCA_RESPUESTA` | Fuentes correctas, TTFT en el orden de ~10 s, sin cierres |
 | 3.15 | Licencias | `docs/licencias.md`: Qwen2.5-1.5B-Instruct (Apache 2.0), multilingual-e5-small (MIT), llama.cpp (MIT), androidx.sqlite (Apache 2.0); el texto del manual de ABB se usa **solo internamente para la demo**; antes de cualquier uso fuera, consultarlo (no es una conclusión legal) | — |
+| 3.16 | Guardia de estrés | `tools/estres-movil.ps1`, versionado, a partir de `llenar-contexto.ps1` del plan 01 (scratchpad de la sesión `b3f7d4d4`; si ya no existe, se reescribe con esta descripción). Parámetros `-Preguntas 20 -TimeoutPorPregunta 120`. Por cada pregunta (lista fija **sin tildes**, porque `adb input text` no las admite; mezcla de códigos, síntomas, seguridad, parámetros y fuera del manual): localizar el `EditText` con `uiautomator dump` **solo con la app parada**, escribir con `adb input text` (espacios como `%s`), buscar el botón "Preguntar" **después** de escribir (el teclado lo mueve), pulsarlo y esperar a que aparezca una línea nueva de `ZCA_METRICS`, `Error al generar` o `Failed` en `adb logcat -d`, sin tocar la interfaz mientras genera. Al final: resumen de logcat filtrado por `FATAL`, `decode.*fail`, `Error`, `Failed`, `STOP: hitting` y `dumpsys meminfo`. Es la guardia de la lección 1 del informe de lecciones del plan 01: el protocolo en verde no ejercitaba los fallos del JNI | Primera ejecución en el A53: 20/20 con métricas, sin `FATAL` ni fallos de `decode` |
 
 **Interfaces de `app` (Kotlin):**
 
@@ -521,7 +523,7 @@ descarguen los condensadores y compruebe con un multímetro que no hay tensión.
 | --- | --- | --- | --- |
 | 5.1 | Condiciones | Batería > 50 %, sin cargar, 2 min de reposo, app recién abierta y modelo cargado. Wi-Fi activo por el ADB: la app no tiene permiso `INTERNET`, así que la red no interviene (se deja escrito, con el manifiesto como prueba) | Anotadas en el informe |
 | 5.2 | Batería en el A53 | Claude genera desde `docs/bateria-manual.yaml` un fichero con las 12 preguntas, **en HTML con un párrafo por pregunta** (en el plan 01 el `.txt` no ajustaba las líneas en el visor), lo copia a `/sdcard/Download/` y lo abre como en el plan 01: `_id` con `content query` en MediaStore y `am start --grant-read-uri-permission -n com.android.htmlviewer/.HTMLViewerActivity -d content://media/external/file/<id>`. **Francisco copia y pega cada pregunta** en la app (`adb input text` no escribe tildes). Claude lee `ZCA_METRICS` y `ZCA_RESPUESTA` al terminar cada una, sin tocar la interfaz durante la generación | Fichero abierto en el móvil; 12 líneas de métricas y 12 respuestas completas |
-| 5.3 | Seguridad y memoria | Tarjeta en las preguntas `riesgo: true`; al final, minimizar 60 s y volver; `dumpsys meminfo` | Anotado |
+| 5.3 | Seguridad, memoria y estrés | Tarjeta en las preguntas `riesgo: true`. Después de la batería y **sin reiniciar la app**: `tools/estres-movil.ps1 -Preguntas 20` (reinicio de la caché, tope de 400 tokens y fuentes, 20 veces seguidas). Al final, minimizar 60 s y volver; `dumpsys meminfo` antes y después del estrés | 20/20 respuestas, sin `FATAL` ni fallos de `decode`, heap estable (sin crecer pregunta a pregunta). Anotado en el informe |
 | 5.4 | Rúbrica | Claude propone la nota 0–2 de cada respuesta con el motivo; **Francisco la valida** | Tabla con 12 notas |
 | 5.5 | Informe | `informes/AAAA-MM-DD-rag-manual-a53.md` con la plantilla de §7, incluidas las Incidencias de E2–E5 | — |
 | 5.6 | **Gate G4 [Francisco]** | Aplicar §3 y escribir la recomendación | Decisión de Francisco escrita |
@@ -662,7 +664,7 @@ de manual sin tocar la app.
 3. Informe de G3 con recall@2 de FTS5, vectores e híbrida, y decisión de Francisco.
 4. En el A53: coseno móvil–PC ≥ 0,99 en las 12 preguntas; FTS5 funcionando; e5 < 0,3 s.
 5. Informe de G4 con las 12 preguntas, TTFT, tok/s, notas validadas, tarjeta de seguridad,
-   memoria, Incidencias y decisión de Francisco.
+   memoria, la tanda de estrés (20/20, sin `FATAL`), Incidencias y decisión de Francisco.
 6. Pantalla igual al mockup aprobado en los 4 estados (capturas en el informe).
 7. `git ls-files | Select-String -Pattern 'gguf|pdf|sqlite'` vacío. `main` solo con merges de PR.
 8. Tag `v0.2.0-rag-manual` en GitHub. Informe de lecciones en su repo.
