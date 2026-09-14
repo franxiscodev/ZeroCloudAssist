@@ -10,6 +10,7 @@ from zca_tools.terminos import (
     expansiones,
     leer_glosario,
     normalizar_texto,
+    palabras_clave,
     terminos_literales,
 )
 
@@ -113,6 +114,24 @@ def test_leer_glosario_rechaza_entradas_mal_escritas(tmp_path, entrada):
     ruta.write_text(f"capitulos: {{}}\nterminos:\n  - {entrada}\n", encoding="utf-8")
     with pytest.raises(ValueError):
         leer_glosario(ruta)
+
+
+@pytest.mark.parametrize(
+    ("traduccion", "esperado"),
+    [
+        ("How do I measure the DC bus voltage?", ["measure", "dc", "bus", "voltage"]),
+        ("What does fault F0009 mean and what should I check?", ["fault", "f0009", "mean", "check"]),
+        ("The motor runs backwards, the motor!", ["motor", "runs", "backwards"]),  # sin duplicados
+        ("", []),
+    ],
+)
+def test_palabras_clave_de_la_traduccion(traduccion, esperado):
+    assert palabras_clave(traduccion) == esperado
+
+
+def test_consulta_con_literales_y_palabras_de_la_traduccion():
+    claves = palabras_clave("What does fault F0009 mean?")
+    assert consulta_fts("¿Qué es el fallo F0009?", claves=claves) == '"0009" OR "fault" OR "f0009" OR "mean"'
 
 
 def test_el_glosario_del_repo_es_valido():

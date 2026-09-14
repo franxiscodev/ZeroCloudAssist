@@ -18,8 +18,15 @@ import yaml
 from zca_tools.construir import construir
 from zca_tools.evaluar import acierta, priorizar, rrf, seleccionar
 from zca_tools.extraer import leer_manual
-from zca_tools.terminos import clase_literal, consulta_fts, leer_glosario, terminos_literales
+from zca_tools.terminos import (
+    clase_literal,
+    consulta_fts,
+    leer_glosario,
+    palabras_clave,
+    terminos_literales,
+)
 from zca_tools.tokens import contador_qwen
+from zca_tools.traducir import traducir
 from zca_tools.trocear import trocear
 from zca_tools.vectorizar import vectorizar
 
@@ -84,9 +91,29 @@ def _vectores_bateria(args: argparse.Namespace) -> None:
     print(f"{len(datos)} vectores → {_ruta(args.salida)}")
 
 
+def _traducir(args: argparse.Namespace) -> None:
+    """Traduce las preguntas con Qwen (llama-server con el GGUF de Qwen) y las guarda."""
+    traducciones = {}
+    for p in _bateria(args.bateria):
+        inicio = time.perf_counter()
+        t = traducir(p["pregunta"], args.url)
+        traducciones[p["id"]] = t
+        print(f"{p['id']} {time.perf_counter() - inicio:4.1f} s · {t['tokens_prompt']} + "
+              f"{t['tokens_respuesta']} tok · {p['pregunta']} → {t['en']}")
+    _ruta(args.salida).write_text(json.dumps(traducciones, ensure_ascii=False, indent=1),
+                                  encoding="utf-8")
+    print(f"→ {_ruta(args.salida)}")
+
+
 def _evaluar(args: argparse.Namespace) -> None:
     """Páginas que entrarían en el prompt con FTS5, con vectores y con la híbrida (RRF)."""
     preguntas = _bateria(args.bateria)
+    traducciones = {}
+    if args.traducciones:
+        datos = json.loads(_ruta(args.traducciones).read_text(encoding="utf-8"))
+        traducciones = {id_: t["en"] for id_, t in datos.items()}
+    if (args.fts == "traduccion" or args.vectores == "traduccion") and not traducciones:
+        raise SystemExit("--fts/--vectores traduccion necesitan --traducciones")
     with closing(sqlite3.connect(f"file:{_ruta(args.indice).as_posix()}?mode=ro", uri=True)) as con:
         filas = con.execute(
             "SELECT id, pagina, tokens, vector, texto, capitulo FROM chunks ORDER BY id"
@@ -101,13 +128,20 @@ def _evaluar(args: argparse.Namespace) -> None:
                     for es, en in con.execute("SELECT es, en FROM glosario ORDER BY rowid")]
         meta = dict(con.execute("SELECT clave, valor FROM meta"))
         preferido = {"codigo": meta.get("capitulo_codigos"), "parametro": meta.get("capitulo_parametros")}
-        consultas = vectorizar([f"query: {p['pregunta']}" for p in preguntas], args.e5)
+        textos_vec = [traducciones[p["id"]] if args.vectores == "traduccion" else p["pregunta"]
+                      for p in preguntas]
+        consultas = vectorizar([f"query: {t}" for t in textos_vec], args.e5)
 
         aciertos = {"fts": 0, "vectores": 0, "hibrida": 0}
         print("| ID | Tipo | Esperadas | FTS5 | Vectores | Híbrida |")
         print("| --- | --- | --- | --- | --- | --- |")
         for p, q in zip(preguntas, consultas):
-            fts_query = consulta_fts(p["pregunta"], glosario)
+            if args.fts == "glosario":
+                fts_query = consulta_fts(p["pregunta"], glosario)
+            elif args.fts == "traduccion":
+                fts_query = consulta_fts(p["pregunta"], claves=palabras_clave(traducciones[p["id"]]))
+            else:
+                fts_query = consulta_fts(p["pregunta"])
             # Todos los resultados de FTS5 por bm25, reordenados (entrada que define el código
             # primero) y después recortados a k.
             todos = [r[0] for r in con.execute(
@@ -153,7 +187,18 @@ def main() -> None:
     p.add_argument("--indice", default="models/acs355.sqlite")
     p.add_argument("--e5", default="http://127.0.0.1:8090")
     p.add_argument("--k", type=int, default=10, help="candidatos de cada método antes de fusionar")
+    p.add_argument("--traducciones", help="JSON de `zca-indice traducir`")
+    p.add_argument("--fts", choices=["glosario", "literales", "traduccion"], default="glosario",
+                   help="literales de la pregunta + glosario, solo literales, o + palabras de la traducción")
+    p.add_argument("--vectores", choices=["original", "traduccion"], default="original",
+                   help="vectorizar la pregunta en español o su traducción")
     p.set_defaults(accion=_evaluar)
+
+    p = sub.add_parser("traducir", help="traduce las preguntas con Qwen (llama-server de Qwen)")
+    p.add_argument("--bateria", default="docs/bateria-manual.yaml")
+    p.add_argument("--url", default="http://127.0.0.1:8090")
+    p.add_argument("--salida", required=True)
+    p.set_defaults(accion=_traducir)
 
     p = sub.add_parser("vectores-bateria", help="vectores de las preguntas para el paso 2.3")
     p.add_argument("--bateria", default="docs/bateria-manual.yaml")

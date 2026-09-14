@@ -227,4 +227,13 @@ preguntas nuevas. §3 prevé una sola ronda de ajuste y ya se ha hecho: **decide
 preguntas de control ya están vistas; cualquier comparación nueva entre opciones necesita otra
 tanda de preguntas que no se haya usado para elegir.
 
-**Gate G3:** pendiente de Francisco.
+**Gate G3 (segunda medida):** Francisco elige la recomendación (2026-09-14: "tu recomendación,
+continuemos"): **traducir la pregunta al inglés con Qwen antes de buscar**, medido primero en el
+PC. Las dos baterías pasan a ser de desarrollo (sirven para comparar variantes); el veredicto final
+se da con 5–6 preguntas nuevas escritas por Francisco sin ver resultados.
+
+## Traducción de la consulta con Qwen (desarrollo)
+
+Montaje, igual que lo haría el móvil: Qwen2.5-1.5B-Instruct Q4_K_M con el prompt de sistema de §6
+y un turno de usuario que pide la traducción; un servidor a la vez en el puerto 8090 (primero Qwen
+traduce y se guarda, luego e5 evalúa).

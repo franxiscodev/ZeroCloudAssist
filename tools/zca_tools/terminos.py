@@ -19,6 +19,13 @@ import yaml
 _TERMINO = re.compile(r"\b[FfAa]?(\d{4})\b|\b([A-Z]{2,4}\d{0,2}|[A-Z]{1,3}\d{1,2})\b")
 _CODIGO = re.compile(r"\b[fa]\d{4}\b|\b(?:fallo|falla|alarma|error|averia|codigo)\b")
 _PARAMETRO = re.compile(r"\bparametro")
+_PALABRA = re.compile(r"[a-z0-9]+")
+_VACIAS_EN = frozenset(
+    "a an the and or of to in on for with at by from as into about is are was were be been "
+    "do does did done how what which who whom when where why can could should would will shall "
+    "may might must i me my we our you your it its this that these those there here have has "
+    "had not no yes please if then than so".split()
+)
 _ES_VALIDO = re.compile(r"[a-z0-9 ]+\*?")
 _EN_VALIDO = re.compile(r'"[a-z0-9 -]+"|[a-z0-9-]+\*?')
 
@@ -62,8 +69,20 @@ def expansiones(pregunta: str, glosario: list[EntradaGlosario]) -> list[str]:
     return salida
 
 
-def consulta_fts(pregunta: str, glosario: list[EntradaGlosario] = ()) -> str | None:
+def palabras_clave(traduccion: str) -> list[str]:
+    """Palabras de la pregunta traducida al inglés que merece la pena buscar en FTS5."""
+    palabras: list[str] = []
+    for palabra in _PALABRA.findall(traduccion.lower()):
+        if len(palabra) > 1 and palabra not in _VACIAS_EN and palabra not in palabras:
+            palabras.append(palabra)
+    return palabras
+
+
+def consulta_fts(
+    pregunta: str, glosario: list[EntradaGlosario] = (), claves: list[str] = ()
+) -> str | None:
     partes = [f'"{t}"' for t in terminos_literales(pregunta)] + expansiones(pregunta, glosario)
+    partes += [f'"{c}"' for c in claves if f'"{c}"' not in partes]
     return " OR ".join(partes) if partes else None
 
 
