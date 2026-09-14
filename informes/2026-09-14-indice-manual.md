@@ -169,3 +169,62 @@ débil que con preguntas de Francisco.
   - Preguntas de control en `docs/bateria-control.yaml` (C01–C07: 2 códigos, 2 síntomas, 1
     seguridad, 1 parámetro, 1 fuera), escritas **después** de congelar el ajuste, con las páginas
     comprobadas por búsqueda de texto en el PDF y commiteadas **antes** de medir.
+
+## G3 tras el ajuste (medida única, índice `2026-09-14.2`)
+
+Batería principal (`uv run zca-indice evaluar --bateria docs/bateria-manual.yaml`):
+
+| ID | Tipo | Esperadas | FTS5 | Vectores | Híbrida |
+| --- | --- | --- | --- | --- | --- |
+| B01 | codigo | 362 | 362, 362 ✓ | 65, 77 ✗ | 362, 65 ✓ |
+| B02 | codigo | 353 | 364, 353 ✓ | 248, 97 ✗ | 364, 248 ✗ |
+| B03 | codigo | 363 | 363, 255 ✓ | 97, 359 ✗ | 363, 97 ✓ |
+| B04 | codigo | 361 | 361, 86 ✓ | 77, 359 ✗ | 361, 77 ✓ |
+| B05 | sintoma | 360 | 365, 353 ✗ | 97, 93 ✗ | 365, 97 ✗ |
+| B06 | sintoma | 359, 360 | 360, 241 ✓ | 97, 359 ✓ | 360, 97 ✓ |
+| B07 | sintoma | 69, 312 | 193, 300 ✗ | 69, 78 ✓ | 193, 69 ✓ |
+| B08 | seguridad | 18, 183 | 361, 183 ✓ | 57, 115 ✗ | 361, 57 ✗ |
+| B09 | seguridad | 372, 373 | 215, 372 ✓ | 92, 48 ✗ | 372, 373 ✓ |
+| B10 | parametro | 310 | 310, 310 ✓ | 65, 63 ✗ | 65, 310 ✓ |
+| B11 | parametro | 233, 141 | 233, 67 ✓ | 233, 97 ✓ | 233, 233 ✓ |
+| B12 | fuera | — | — | 97, 381 | 97, 381 |
+
+**Recall@2: FTS5 9/11 · vectores 3/11 · híbrida 8/11** (antes 3 · 3 · 4).
+
+Preguntas de control (`--bateria docs/bateria-control.yaml`):
+
+| ID | Tipo | Esperadas | FTS5 | Vectores | Híbrida |
+| --- | --- | --- | --- | --- | --- |
+| C01 | codigo | 360 | 360, 258 ✓ | 359, 77 ✗ | 360, 359 ✓ |
+| C02 | codigo | 356 | 356, 86 ✓ | 153, 356 ✓ | 356, 153 ✓ |
+| C03 | sintoma | 356, 362 | 86, 136 ✗ | 362, 356 ✓ | 72, 86 ✗ |
+| C04 | sintoma | 372 | 245, 359 ✗ | 93, 89 ✗ | 245, 93 ✗ |
+| C05 | seguridad | 18 | — ✗ | 97, 36 ✗ | 97, 36 ✗ |
+| C06 | parametro | 222, 223 | 201, 199 ✗ | 364, 222 ✓ | 201, 199 ✗ |
+| C07 | fuera | — | — | 28, 95 | 28, 95 |
+
+**Recall@2: FTS5 2/6 · vectores 3/6 · híbrida 2/6.**
+
+Lectura:
+
+- **Los códigos ya funcionan**, en las dos baterías: 6 de 6 con FTS5 (B01–B04, C01, C02). La
+  entrada que define el código primero es una regla general y se sostiene con preguntas nuevas.
+- **Lo coloquial no generaliza.** El glosario acierta cuando la pregunta usa la palabra prevista
+  y falla con cualquier otra forma: "cableado del motor" (C05) no casa con "cable del motor", y
+  términos genéricos como "ruido" → `noise` (C04) o "velocidad" → `speed` (C06) traen las páginas
+  donde la palabra es más frecuente, no la buena. El 8/11 de la principal está inflado por haber
+  escrito el glosario conociendo esas preguntas.
+- **RRF empeora cuando FTS5 mete ruido:** en C03 y C06 los vectores tenían la página buena en el
+  top-2 y la híbrida la perdió, porque un chunk que sale en las dos listas aunque sea abajo suma
+  más que el primero de una sola.
+- Los vectores (e5-small, español frente a inglés) siguen en ~3 de cada 6–11: son el eslabón débil
+  para las preguntas sin código.
+
+## Decisión según §3, segunda medida (paso 1.14)
+
+Principal **8/11 = GO con reservas**, pero el control da **2/6**: la mejora no se sostiene con
+preguntas nuevas. §3 prevé una sola ronda de ajuste y ya se ha hecho: **decide Francisco.** Las
+preguntas de control ya están vistas; cualquier comparación nueva entre opciones necesita otra
+tanda de preguntas que no se haya usado para elegir.
+
+**Gate G3:** pendiente de Francisco.
