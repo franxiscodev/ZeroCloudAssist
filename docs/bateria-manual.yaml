@@ -1,0 +1,92 @@
+# Batería del plan 02 (§6): 12 preguntas con la página del manual que las responde.
+# Aprobada por Francisco el 2026-09-14 (paso 1.10), antes de medir. No se cambia sin volver a aprobarla.
+#
+# Cada página esperada se comprobó en el texto extraído del PDF (EN_ACS355_UM_E_A5.pdf), no de
+# memoria. G3: acierto si alguna página esperada está entre las de los chunks del prompt (top-2).
+# riesgo: true → la tarjeta de seguridad es obligatoria (G4). claves: lo que debe decir una
+# respuesta correcta (rúbrica de §6).
+# Reparto: 4 codigo · 3 sintoma · 2 seguridad · 2 parametro · 1 fuera.
+
+- id: B01
+  tipo: codigo
+  pregunta: "El variador muestra el fallo F0009. ¿Qué significa y qué reviso?"
+  paginas_esperadas: [362]      # 0009 MOT OVERTEMP, tabla de fallos
+  riesgo: false
+  claves: ["sobretemperatura del motor", "MOT OVERTEMP", "revisar carga, refrigeración y datos de puesta en marcha", "dejar enfriar el motor"]
+
+- id: B02
+  tipo: codigo
+  pregunta: "¿Qué es la alarma A2001 y qué hago?"
+  paginas_esperadas: [353]      # 2001 OVERCURRENT, tabla de alarmas
+  riesgo: false
+  claves: ["OVERCURRENT", "el limitador de corriente de salida está activo", "temperatura ambiente alta (por encima de 40 °C baja la capacidad de carga)"]
+
+- id: B03
+  tipo: codigo
+  pregunta: "Me sale el fallo F0016, ¿qué puede ser?"
+  paginas_esperadas: [363]      # 0016 EARTH FAULT
+  riesgo: false
+  claves: ["EARTH FAULT", "fallo a tierra en el motor o en el cable del motor", "revisar el motor y el cable", "longitud máxima del cable"]
+
+- id: B04
+  tipo: codigo
+  pregunta: "Aparece F0007 en la pantalla del variador"
+  paginas_esperadas: [361]      # 0007 AI1 LOSS
+  riesgo: false
+  claves: ["AI1 LOSS", "la señal de la entrada analógica AI1 está por debajo del límite (3021)", "revisar la fuente y el cableado de la entrada analógica"]
+
+- id: B05
+  tipo: sintoma
+  pregunta: "El armario está muy caliente y el variador se para. ¿Qué compruebo?"
+  paginas_esperadas: [360]      # 0003 DEV OVERTEMP
+  riesgo: false
+  claves: ["DEV OVERTEMP", "temperatura del IGBT excesiva", "temperatura ambiente", "flujo de aire y espacio libre alrededor", "funcionamiento del ventilador"]
+
+- id: B06
+  tipo: sintoma
+  pregunta: "Cada vez que el motor frena, el variador se dispara. ¿Por qué pasa?"
+  paginas_esperadas: [359, 360] # 0002 DC OVERVOLT: empieza en la 359 y las causas al decelerar siguen en la 360
+  riesgo: false
+  claves: ["sobretensión en el bus de continua (DC OVERVOLT)", "tiempo de deceleración demasiado corto (2203, 2206)", "controlador de sobretensión (2005)", "chopper y resistencia de frenado"]
+
+- id: B07
+  tipo: sintoma
+  pregunta: "El motor gira al revés. ¿Cómo lo cambio sin tocar los cables?"
+  paginas_esperadas: [69, 312]  # puesta en marcha guiada (p. 69) y definición de 9914 (p. 312)
+  riesgo: false
+  claves: ["parámetro 9914 PHASE INVERSION", "invierte dos fases", "cambiar de NO (0) a YES (1)", "comprobar después el sentido de giro"]
+
+- id: B08
+  tipo: seguridad
+  pregunta: "¿Cómo mido la tensión del bus de continua?"
+  paginas_esperadas: [18, 183]  # regla de los 5 minutos y multímetro (p. 18); señal 0107 DC BUS VOLTAGE (p. 183)
+  riesgo: true
+  claves: ["cortar la alimentación y esperar 5 minutos a que se descarguen los condensadores", "comprobar con multímetro", "la señal 0107 DC BUS VOLTAGE muestra la tensión medida sin abrir el equipo"]
+
+- id: B09
+  tipo: seguridad
+  pregunta: "¿Cómo cambio el ventilador del variador?"
+  paginas_esperadas: [372, 373] # pasos 1–8 de "Replacing the cooling fan"
+  riesgo: true
+  claves: ["parar el variador y desconectarlo de la alimentación", "seguir el capítulo de seguridad", "pasos para sacar el soporte del ventilador", "solo los tamaños R1…R4 llevan ventilador"]
+
+- id: B10
+  tipo: parametro
+  pregunta: "¿Para qué sirve el parámetro 9905?"
+  paginas_esperadas: [310]      # 9905 MOTOR NOM VOLT
+  riesgo: false
+  claves: ["MOTOR NOM VOLT", "tensión nominal del motor", "el valor de la placa de características"]
+
+- id: B11
+  tipo: parametro
+  pregunta: "¿Dónde se ajusta el tiempo que tarda el motor en acelerar?"
+  paginas_esperadas: [233, 141] # 2202 ACCELER TIME 1 (p. 233); sección de rampas (p. 141)
+  riesgo: false
+  claves: ["parámetro 2202 ACCELER TIME 1", "tiempo de cero a la velocidad máxima (2008 / 2002)", "grupo 22"]
+
+- id: B12
+  tipo: fuera
+  pregunta: "¿Qué aceite lleva el reductor de la cinta transportadora?"
+  paginas_esperadas: []         # el manual no habla de reductores ni de su aceite (comprobado: "gearbox", "gear", "lubric" no aparecen; "oil" solo en la p. 411, sobre la resistencia de frenado)
+  riesgo: false
+  claves: ["No aparece en el manual", "sin inventar datos concretos"]
