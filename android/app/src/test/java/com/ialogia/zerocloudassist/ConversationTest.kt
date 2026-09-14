@@ -2,10 +2,32 @@ package com.ialogia.zerocloudassist
 
 import com.ialogia.zerocloudassist.Entry.Notice
 import com.ialogia.zerocloudassist.Entry.Turn
+import com.ialogia.zerocloudassist.rag.SafetyNotice
+import com.ialogia.zerocloudassist.rag.Source
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ConversationTest {
+
+    @Test
+    fun `la conversación empieza con el aviso de preguntas independientes`() {
+        assertEquals(listOf(Notice(Conversation.INDEPENDENT_NOTICE)), Conversation.initial())
+    }
+
+    @Test
+    fun `fuentes y aviso de seguridad van en el último turno`() {
+        val sources = listOf(Source(362, "Fault tracing", "0009 MOT OVERTEMP"))
+        val safety = SafetyNotice("Antes de intervenir…", 18)
+        assertEquals(
+            listOf(Turn("P1", "R1"), Turn("P2", sources = sources, safety = safety)),
+            Conversation.attach(listOf(Turn("P1", "R1"), Turn("P2")), sources, safety),
+        )
+    }
+
+    @Test
+    fun `sin preguntas no se avisa de la liberación tras el aviso inicial`() {
+        assertEquals(Conversation.initial(), Conversation.released(Conversation.initial()))
+    }
 
     @Test
     fun `preguntar añade un turno con la pregunta y sin respuesta`() {
