@@ -96,7 +96,7 @@ def _traducir(args: argparse.Namespace) -> None:
     traducciones = {}
     for p in _bateria(args.bateria):
         inicio = time.perf_counter()
-        t = traducir(p["pregunta"], args.url)
+        t = traducir(p["pregunta"], args.url, args.variante)
         traducciones[p["id"]] = t
         print(f"{p['id']} {time.perf_counter() - inicio:4.1f} s · {t['tokens_prompt']} + "
               f"{t['tokens_respuesta']} tok · {p['pregunta']} → {t['en']}")
@@ -198,6 +198,8 @@ def main() -> None:
     p.add_argument("--bateria", default="docs/bateria-manual.yaml")
     p.add_argument("--url", default="http://127.0.0.1:8090")
     p.add_argument("--salida", required=True)
+    p.add_argument("--variante", choices=["base", "t1", "t2"], default="base",
+                   help="base/t1: prompt de sistema de §6; t2: sistema propio de traductor")
     p.set_defaults(accion=_traducir)
 
     p = sub.add_parser("vectores-bateria", help="vectores de las preguntas para el paso 2.3")

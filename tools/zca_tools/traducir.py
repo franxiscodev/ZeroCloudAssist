@@ -22,14 +22,30 @@ PETICION = (
     "Translate this question into English to search the manual. Keep codes and parameter "
     "numbers as they are. Reply with the translation only.\n"
 )
+# T1: mismo sistema (en caché en el móvil) y una petición que declara la excepción al idioma.
+PETICION_T1 = (
+    "Tarea especial, excepción a la norma de responder en español: traduce al inglés la pregunta "
+    "siguiente, sin responderla. Mantén los códigos y los números de parámetro. Escribe solo la "
+    "traducción en inglés.\nPregunta: "
+)
+# T2: sistema propio de traductor (en el móvil, un segundo prefijo en la caché).
+SYSTEM_TRADUCTOR = (
+    "You are a translator. Translate the user's message from Spanish into English. Keep codes "
+    "and parameter numbers unchanged. Output only the English translation; never answer the "
+    "question."
+)
 _ETIQUETA = re.compile(r"^(?:translation|english)\s*:\s*", re.IGNORECASE)
 
 
-def mensajes(pregunta: str) -> list[dict[str, str]]:
-    return [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": PETICION + pregunta},
-    ]
+def mensajes(pregunta: str, variante: str = "base") -> list[dict[str, str]]:
+    if variante == "t1":
+        return [{"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": PETICION_T1 + pregunta}]
+    if variante == "t2":
+        return [{"role": "system", "content": SYSTEM_TRADUCTOR},
+                {"role": "user", "content": pregunta}]
+    return [{"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": PETICION + pregunta}]
 
 
 def limpiar(salida: str) -> str:
@@ -38,11 +54,13 @@ def limpiar(salida: str) -> str:
     return _ETIQUETA.sub("", linea).strip().strip("\"'“”").strip()
 
 
-def traducir(pregunta: str, url: str, temperatura: float = 0.2, max_tokens: int = 64) -> dict:
+def traducir(
+    pregunta: str, url: str, variante: str = "base", temperatura: float = 0.2, max_tokens: int = 64
+) -> dict:
     """{"en": traducción, "tokens_prompt": …, "tokens_respuesta": …}. Temperatura 0,2 como el móvil."""
     respuesta = requests.post(
         f"{url}/v1/chat/completions",
-        json={"messages": mensajes(pregunta), "temperature": temperatura, "seed": 42,
+        json={"messages": mensajes(pregunta, variante), "temperature": temperatura, "seed": 42,
               "max_tokens": max_tokens},
         timeout=120,
     )

@@ -2,7 +2,7 @@
 
 import pytest
 
-from zca_tools.traducir import SYSTEM_PROMPT, limpiar, mensajes
+from zca_tools.traducir import SYSTEM_PROMPT, SYSTEM_TRADUCTOR, limpiar, mensajes
 
 
 def test_prompt_de_sistema_es_el_del_plan():
@@ -25,6 +25,27 @@ def test_mensajes_de_la_traduccion():
             "¿Cómo mido la tensión del bus de continua?",
         },
     ]
+
+
+def test_mensajes_t1_declaran_la_excepcion_al_idioma():
+    assert mensajes("¿Cómo cambio el ventilador?", "t1") == [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": "Tarea especial, excepción a la norma de responder en español: traduce al "
+            "inglés la pregunta siguiente, sin responderla. Mantén los códigos y los números de "
+            "parámetro. Escribe solo la traducción en inglés.\n"
+            "Pregunta: ¿Cómo cambio el ventilador?",
+        },
+    ]
+
+
+def test_mensajes_t2_con_sistema_de_traductor():
+    assert mensajes("¿Cómo cambio el ventilador?", "t2") == [
+        {"role": "system", "content": SYSTEM_TRADUCTOR},
+        {"role": "user", "content": "¿Cómo cambio el ventilador?"},
+    ]
+    assert "never answer" in SYSTEM_TRADUCTOR
 
 
 @pytest.mark.parametrize(
