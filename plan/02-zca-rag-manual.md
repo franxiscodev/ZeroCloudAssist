@@ -627,7 +627,10 @@ Gate: decisión de Francisco
 Botón "Importar" en la app, instalación por MDM o Play privado, descarga desde un servidor de la
 empresa (introduce red y un secreto), visor del PDF en la página citada (pedido por Francisco el
 2026-09-14 para después del MVP: cada referencia de página, en los chips de fuentes y en la cita
-de la tarjeta de seguridad, es un enlace que abre el PDF en esa página), varios manuales,
+de la tarjeta de seguridad, es un enlace que abre el PDF en esa página), publicar la página de
+la charla (`tools/charla/`, un solo HTML) en un hosting propio como Hostinger (pedido por
+Francisco el 2026-09-14; antes, decidir qué hacer con el texto del manual de ABB que lleva, ver
+`docs/licencias.md`), varios manuales,
 memoria de conversación, tema claro, OCR de la pantalla del variador, voz, bitácoras de trabajo.
 El móvil con i8mm solo entra si G4 da NO-GO en tiempo. La tabla `meta` deja preparado el cambio
 de manual sin tocar la app.

@@ -1,0 +1,330 @@
+<title>ZCA en el A53</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Tema único a propósito: es la estética de la app (docs/diseno-ui.md), solo oscura y cálida. */
+  :root {
+    color-scheme: dark;
+    --ground: #14110D;
+    --page: #0E0C09;
+    --surface: #1E1A15;
+    --raised: #29231C;
+    --line: #3A3228;
+    --text: #EEE6D8;
+    --muted: #A3988A;
+    --faint: #6F665A;
+    --amber: #F0A43A;
+    --amber-ink: #1B1206;
+    --amber-soft: rgba(240, 164, 58, 0.14);
+    --hazard: #E8B923;
+    --hazard-ground: #2B2210;
+    --ok: #7FB77E;
+    --missing: #E2725B;
+    --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+    --body: "Atkinson Hyperlegible", "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono: "JetBrains Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--page); color: var(--text); font: 15px/1.5 var(--body); padding-inline: 20px; padding-block: 32px 56px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .wrap { max-width: 1240px; margin-inline: auto; display: grid; gap: 28px; }
+
+  /* Título, bajada y cifras a todo el ancho; el script ajusta el título a una línea exacta. */
+  header { display: grid; gap: 18px; }
+  .eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); }
+  h1 { font: 700 clamp(40px, 6vw, 68px)/0.95 var(--display); letter-spacing: 0.01em; margin: 0; text-wrap: balance; }
+  h1 b { color: var(--amber); font-weight: 700; }
+  .lede { margin: 0; font-size: clamp(17px, 1.75vw, 23px); line-height: 1.45; color: var(--muted); text-wrap: pretty; }
+  .lede strong { color: var(--text); font-weight: 700; }
+  .lede em { font-style: normal; color: var(--amber); }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 4px 0 0; padding: 0; list-style: none; }
+  .recorded { margin: 0 0 -12px; font: 12.5px/1.4 var(--mono); color: var(--faint); }
+  .recorded b { color: var(--muted); font-weight: 600; }
+  .facts li { display: grid; gap: 2px; }
+  .facts b { font: 600 22px/1 var(--mono); color: var(--text); font-variant-numeric: tabular-nums; }
+  .facts span { font-size: 12.5px; color: var(--muted); }
+
+  .stage { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 400px); gap: 32px; align-items: start; }
+  @media (max-width: 760px) { .stage { grid-template-columns: 1fr; } .phone-col { order: -1; } }
+
+  .picker { display: grid; gap: 14px; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter { background: none; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font: 600 12px/1 var(--mono); color: var(--muted); }
+  .filter[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); background: var(--amber-soft); }
+  .group { display: grid; gap: 4px; }
+  .group h2 { margin: 6px 0 2px; font: 600 14px/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+  .q {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+    text-align: left; background: none; border: 1px solid transparent; border-radius: 8px; padding: 8px 10px;
+  }
+  .q:hover { background: var(--surface); }
+  .q[aria-current="true"] { background: var(--surface); border-color: var(--line); box-shadow: inset 3px 0 0 var(--amber); }
+  .q .t { font-size: 14.5px; }
+  .q .tags { display: flex; gap: 6px; }
+  .tag { font: 600 10.5px/1 var(--mono); padding: 4px 6px; border-radius: 5px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .tag.safe { color: var(--hazard); border-color: rgba(232, 185, 35, 0.5); }
+  .tag.out { color: var(--ok); border-color: rgba(127, 183, 126, 0.5); }
+  .tag.limit { color: var(--missing); border-color: rgba(226, 114, 91, 0.5); }
+
+  .phone-col { display: grid; gap: 14px; position: sticky; top: 16px; }
+  .phone { width: 100%; height: 720px; background: var(--ground); border: 1px solid var(--line); border-radius: 34px; padding: 10px; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.8); }
+  .screen { height: 100%; border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; }
+  .statusbar { display: flex; justify-content: space-between; padding: 10px 18px 4px; font: 11px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .appbar { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 10px; padding: 10px 16px 12px; border-bottom: 1px solid var(--line); }
+  .appbar .name { font: 700 21px/1 var(--display); letter-spacing: 0.03em; }
+  .appbar .name b { color: var(--amber); }
+  .appbar .manual { grid-column: 1 / -1; font: 11.5px/1.3 var(--mono); color: var(--muted); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1 var(--mono); padding: 5px 8px; border-radius: 999px; border: 1px solid currentColor; color: var(--ok); }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.busy { color: var(--amber); }
+  .thread { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  .question { font-weight: 700; font-size: 16px; line-height: 1.35; margin: 0; }
+  .safety { background: var(--hazard-ground); border-radius: 8px; overflow: hidden; border: 1px solid rgba(232, 185, 35, 0.35); flex: none; }
+  .safety .stripe { height: 8px; background: repeating-linear-gradient(-45deg, var(--hazard) 0 9px, #15110A 9px 18px); }
+  .safety .body { padding: 10px 12px 12px; display: grid; gap: 6px; }
+  .safety .title { display: flex; align-items: center; gap: 8px; font: 700 15px/1 var(--display); letter-spacing: 0.05em; text-transform: uppercase; color: var(--hazard); }
+  .safety p { margin: 0; font-size: 13.5px; line-height: 1.45; }
+  .safety .chip { color: var(--hazard); border-color: rgba(232, 185, 35, 0.6); justify-self: start; }
+  .sources { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .sources .label { font: 600 10.5px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-right: 2px; }
+  .chip { font: 600 12px/1 var(--mono); color: var(--amber); background: transparent; border: 1px solid rgba(240, 164, 58, 0.45); border-radius: 6px; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+  .chip[aria-expanded="true"] { background: var(--amber-soft); border-color: var(--amber); }
+  .fragment { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; }
+  .fragment .where { font: 11px/1 var(--mono); color: var(--muted); }
+  .fragment .where b { color: var(--amber); }
+  .fragment p { margin: 0; font: 12px/1.45 var(--mono); opacity: 0.85; white-space: pre-line; }
+  .working { display: grid; gap: 8px; padding: 12px; background: var(--surface); border-radius: 8px; }
+  .working .line { display: flex; justify-content: space-between; font: 13px/1 var(--mono); }
+  .working .line b { color: var(--amber); font-variant-numeric: tabular-nums; }
+  .bar { height: 3px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+  .bar i { display: block; width: 38%; height: 100%; background: var(--amber); animation: sweep 1.6s ease-in-out infinite; }
+  @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(270%); } }
+  .answer { display: grid; gap: 8px; font-size: 14.5px; line-height: 1.5; }
+  .answer p { margin: 0; }
+  .answer ol, .answer ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+  .answer li::marker { font-family: var(--mono); color: var(--amber); font-weight: 600; }
+  .answer .caret { display: inline-block; width: 7px; height: 1.05em; background: var(--amber); vertical-align: -2px; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .cut { font: 12px/1.4 var(--mono); color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; margin: 0; }
+  .composer { display: flex; gap: 8px; padding: 10px 12px 14px; border-top: 1px solid var(--line); }
+  .field { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 11px 12px; font-size: 14px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ask { font: 700 15px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; background: var(--raised); color: var(--faint); border-radius: 10px; padding: 0 14px; display: grid; place-items: center; }
+
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .play { background: var(--amber); color: var(--amber-ink); border: 0; border-radius: 10px; padding: 10px 14px; font: 700 15px/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; }
+  .speed { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .speed button { background: none; border: 0; padding: 9px 10px; font: 600 12px/1 var(--mono); color: var(--muted); }
+  .speed button[aria-pressed="true"] { background: var(--raised); color: var(--amber); }
+  .measures { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .measures div { background: var(--ground); padding: 10px; display: grid; gap: 3px; }
+  .measures b { font: 600 17px/1 var(--mono); font-variant-numeric: tabular-nums; }
+  .measures span { font-size: 11.5px; color: var(--muted); }
+  .note { margin: 0; font-size: 13.5px; color: var(--muted); border-left: 2px solid var(--missing); padding-left: 10px; }
+  .note.good { border-color: var(--ok); }
+
+  footer { color: var(--faint); font-size: 12.5px; max-width: 90ch; display: grid; gap: 6px; }
+  footer p { margin: 0; }
+  @media (prefers-reduced-motion: reduce) { .bar i, .answer .caret { animation: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">ZeroCloudAssist · IA local, sin conexión</div>
+    <h1>Donde no llega la red, <b>llega la IA.</b></h1>
+    <p class="lede">El técnico no elige dónde se para una máquina: una estación de bombeo en medio del campo, un parque eólico, la sala de máquinas de un barco. <strong>Allí no hay Internet, y una IA en la nube no sirve de nada.</strong> Esta <em>vive en el móvil</em>: el modelo y todo el manual del variador ABB ACS355 caben en <strong>un Galaxy A53 de gama media de 2022, un móvil de hace más de cuatro años</strong>, y responden en español al pie de la máquina, sin cobertura. Y no se queda quieta: <strong>se alimentará de los informes de cada técnico</strong>, para que lo que uno resuelve hoy lo sepa el siguiente mañana. De paso, ningún dato de la planta sale del teléfono y nadie paga por pregunta.</p>
+    <ul class="facts" id="facts"></ul>
+  </header>
+
+  <p class="recorded"><b>Debajo, 23 respuestas reales</b> grabadas en el A53, todo dentro del teléfono · sin retocar, tampoco los fallos</p>
+
+  <div class="stage">
+    <div class="picker">
+      <div class="filters" role="group" aria-label="Qué preguntas mostrar">
+        <button class="filter" id="f-dest" aria-pressed="true">Destacadas</button>
+        <button class="filter" id="f-all" aria-pressed="false">Las <span id="n-all"></span></button>
+      </div>
+      <div id="groups"></div>
+    </div>
+
+    <div class="phone-col">
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span id="clock"></span><span>100 %</span></div>
+        <div class="appbar">
+          <div class="name"><b>ZCA</b> · ABB ACS355</div>
+          <span class="pill" id="pill">listo</span>
+          <div class="manual">User's manual · índice 2026-09-14.2</div>
+        </div>
+        <div class="thread" id="thread"></div>
+        <div class="composer"><div class="field">Pregunta sobre el variador…</div><div class="ask">Preguntar</div></div>
+      </div></div>
+      <div class="controls">
+        <button class="play" id="play">▶ Reproducir a velocidad real</button>
+        <div class="speed" role="group" aria-label="Velocidad">
+          <button id="s1" aria-pressed="true">×1</button><button id="s2" aria-pressed="false">×2</button><button id="s4" aria-pressed="false">×4</button>
+        </div>
+      </div>
+      <div class="measures" id="measures"></div>
+      <p class="note" id="note" hidden></p>
+    </div>
+  </div>
+
+  <footer>
+    <p>Grabado el 14-09-2026 en la rama de desarrollo (plan 02, etapa 3): 23 preguntas escritas por ADB, por eso van sin tildes. Tiempos de logcat (<code>ZCA_METRICS</code>); respuestas de <code>ZCA_RESPUESTA</code>. Los fragmentos del manual se reconstruyen en el PC con la misma búsqueda que la app; donde la página no coincide con la del móvil no se muestra fragmento.</p>
+    <p>"Reproducir" repite la espera hasta la primera palabra y el ritmo de escritura medidos para esa respuesta. Texto del manual: ABB, solo para esta demo.</p>
+  </footer>
+</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(() => {
+  const items = JSON.parse(document.getElementById('data').textContent);
+  const NOTICE = 'Antes de intervenir: corte la alimentación, espere 5 minutos a que se descarguen los condensadores y compruebe con un multímetro que no hay tensión.';
+  const GROUPS = ['Códigos de fallo', 'Síntomas', 'Seguridad', 'Parámetros y funciones', 'Procedimientos', 'Fuera del manual'];
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fmt = (n, d = 1) => n.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const $ = id => document.getElementById(id);
+
+  // Resumen de la tanda, calculado de los datos.
+  const ttfts = items.map(i => i.ttft).sort((a, b) => a - b);
+  const mid = ttfts.length % 2 ? ttfts[(ttfts.length - 1) / 2] : (ttfts[ttfts.length / 2 - 1] + ttfts[ttfts.length / 2]) / 2;
+  const toks = items.map(i => i.toks);
+  const search = items.map(i => i.busqueda);
+  $('facts').innerHTML = [
+    ['0', 'conexiones a Internet: la app no tiene ese permiso'],
+    ['2022', 'Galaxy A53, gama media'],
+    [items.length, 'respuestas grabadas'],
+    [fmt(mid) + ' s', 'hasta la primera palabra (mediana)'],
+    [fmt(Math.min(...toks)) + '–' + fmt(Math.max(...toks)), 'tokens por segundo'],
+    [fmt(Math.min(...search)) + '–' + fmt(Math.max(...search)) + ' s', 'buscando en el manual'],
+    ['0', 'cierres'],
+  ].map(([b, s]) => `<li><b>${b}</b><span>${s}</span></li>`).join('');
+  $('n-all').textContent = items.length;
+
+  let filter = 'dest', current = items.findIndex(i => i.destacada), speed = 1, timers = [];
+
+  // Markdown mínimo, como MarkdownLite de la app: listas, negritas, una línea por bloque.
+  function md(text) {
+    const out = []; let list = null;
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (!line) { list = null; continue; }
+      const bold = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+      const o = line.match(/^(\d{1,3})[.)]\s+(.*)$/), u = line.match(/^[-*•]\s+(.*)$/);
+      if (o || u) {
+        const tag = o ? 'ol' : 'ul';
+        if (!list || list.tag !== tag) { list = { tag, items: [], start: o ? +o[1] : 1 }; out.push(list); }
+        list.items.push(bold(o ? o[2] : u[1]));
+      } else { list = null; out.push(`<p>${bold(line.replace(/^#+\s+/, ''))}</p>`); }
+    }
+    return out.map(b => typeof b === 'string' ? b : `<${b.tag}${b.tag === 'ol' && b.start !== 1 ? ` start="${b.start}"` : ''}>${b.items.map(i => `<li>${i}</li>`).join('')}</${b.tag}>`).join('');
+  }
+
+  function renderList() {
+    const shown = items.map((it, i) => [it, i]).filter(([it]) => filter === 'all' || it.destacada);
+    $('groups').innerHTML = GROUPS.map(g => {
+      const rows = shown.filter(([it]) => it.grupo === g);
+      if (!rows.length) return '';
+      return `<div class="group"><h2>${g}</h2>${rows.map(([it, i]) => {
+        const tags = [
+          it.aviso ? '<span class="tag safe">aviso</span>' : '',
+          it.grupo === 'Fuera del manual' ? '<span class="tag out">no inventa</span>' : '',
+          it.limite ? '<span class="tag limit">límite</span>' : '',
+        ].join('');
+        return `<button class="q" data-i="${i}" aria-current="${i === current}"><span class="t">${esc(it.pregunta_mostrada)}</span><span class="tags">${tags}</span></button>`;
+      }).join('')}</div>`;
+    }).join('');
+    $('groups').querySelectorAll('.q').forEach(b => b.addEventListener('click', () => show(+b.dataset.i)));
+  }
+
+  function sourcesHtml(it) {
+    return `<div class="sources"><span class="label">Fuentes</span>${it.fuentes.map((f, k) =>
+      `<button class="chip" data-k="${k}" aria-expanded="false"${f.texto ? '' : ' disabled title="Fragmento no reconstruido"'}>p. ${f.pagina}</button>`).join('')}</div><div id="frag"></div>`;
+  }
+
+  function bindChips(it) {
+    $('thread').querySelectorAll('.sources .chip').forEach(c => c.addEventListener('click', () => {
+      const f = it.fuentes[+c.dataset.k], open = c.getAttribute('aria-expanded') === 'true';
+      $('thread').querySelectorAll('.sources .chip').forEach(x => x.setAttribute('aria-expanded', 'false'));
+      $('frag').innerHTML = open ? '' : `<div class="fragment"><div class="where"><b>p. ${f.pagina}</b> · ${esc(f.capitulo)}</div><p>${esc(f.texto)}</p></div>`;
+      if (!open) c.setAttribute('aria-expanded', 'true');
+    }));
+  }
+
+  function frame(it, body) {
+    const card = it.aviso ? `<div class="safety"><div class="stripe"></div><div class="body"><div class="title"><svg width="18" height="16" viewBox="0 0 18 16" aria-hidden="true"><path d="M9 1 17 15H1Z" fill="none" stroke="#E8B923" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 6v4.2M9 12.3v.2" stroke="#E8B923" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>Riesgo eléctrico</div><p>${NOTICE}</p><span class="chip">p. 18</span></div></div>` : '';
+    $('thread').innerHTML = `<p class="question">${esc(it.pregunta_mostrada)}</p>${card}${body}`;
+  }
+
+  function measures(it) {
+    $('measures').innerHTML = [
+      [fmt(it.ttft) + ' s', 'primera palabra'], [fmt(it.toks), 'tok/s'], [fmt(it.busqueda) + ' s', 'búsqueda'], [it.manual, 'tokens de manual'],
+    ].map(([b, s]) => `<div><b>${b}</b><span>${s}</span></div>`).join('');
+    $('note').hidden = !it.nota;
+    $('note').className = 'note' + (it.nota_buena ? ' good' : '');
+    $('note').textContent = it.nota || '';
+  }
+
+  function stop() { timers.forEach(clearTimeout); timers.forEach(clearInterval); timers = []; $('pill').textContent = 'listo'; $('pill').className = 'pill'; }
+
+  function showFinal(it) {
+    frame(it, `<div class="answer">${md(it.respuesta)}</div>${it.cortada ? '<p class="cut">— respuesta cortada: llegó al límite de longitud —</p>' : ''}${sourcesHtml(it)}`);
+    bindChips(it);
+  }
+
+  function show(i) {
+    stop(); current = i; const it = items[i];
+    $('clock').textContent = it.hora.slice(6, 11);
+    showFinal(it); measures(it); renderList();
+    $('thread').scrollTop = 0;
+  }
+
+  // Repite la espera hasta la primera palabra y el ritmo de escritura medidos.
+  function play() {
+    stop(); const it = items[current];
+    if (reduced) { showFinal(it); return; }
+    frame(it, `${sourcesHtml(it)}<div class="working"><div class="line"><span>procesando el manual…</span><b id="secs">0 s</b></div><div class="bar"><i></i></div></div>`);
+    bindChips(it);
+    $('pill').textContent = 'pensando'; $('pill').className = 'pill busy';
+    const t0 = performance.now(), wait = it.ttft * 1000 / speed;
+    const tick = setInterval(() => { const s = $('secs'); if (s) s.textContent = Math.floor((performance.now() - t0) * speed / 1000) + ' s'; }, 100);
+    timers.push(tick);
+    timers.push(setTimeout(() => {
+      clearInterval(tick);
+      const genMs = (it.tokens / it.toks) * 1000 / speed, text = it.respuesta, t1 = performance.now();
+      frame(it, `<div class="answer" id="ans"></div>${sourcesHtml(it)}`); bindChips(it);
+      const step = () => {
+        const frac = Math.min(1, (performance.now() - t1) / genMs), n = Math.round(text.length * frac);
+        $('ans').innerHTML = md(text.slice(0, n)) + (frac < 1 ? '<span class="caret"></span>' : '');
+        if (frac < 1) timers.push(setTimeout(step, 40));
+        else { showFinal(it); stop(); }
+      };
+      step();
+    }, wait));
+  }
+
+  $('play').addEventListener('click', play);
+  [['s1', 1], ['s2', 2], ['s4', 4]].forEach(([id, v]) => $(id).addEventListener('click', () => {
+    speed = v; ['s1', 's2', 's4'].forEach(x => $(x).setAttribute('aria-pressed', String(x === id)));
+  }));
+  [['f-dest', 'dest'], ['f-all', 'all']].forEach(([id, v]) => $(id).addEventListener('click', () => {
+    filter = v; ['f-dest', 'f-all'].forEach(x => $(x).setAttribute('aria-pressed', String(x === id))); renderList();
+  }));
+  show(current);
+
+  // El título ocupa el ancho exacto de la página en una línea; en pantallas estrechas, se parte.
+  function fitTitle() {
+    const h = document.querySelector('h1'), box = h.parentElement.clientWidth;
+    if (box < 640) { h.style.fontSize = ''; h.style.whiteSpace = ''; return; }
+    h.style.whiteSpace = 'nowrap'; h.style.fontSize = '100px';
+    const range = document.createRange(); range.selectNodeContents(h);
+    const width = range.getBoundingClientRect().width;
+    h.style.fontSize = Math.min(160, Math.max(40, 100 * box / width)) + 'px';
+  }
+  fitTitle();
+  document.fonts?.ready.then(fitTitle);
+  addEventListener('resize', fitTitle);
+})();
+</script>
