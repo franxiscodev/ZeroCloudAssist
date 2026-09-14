@@ -23,13 +23,17 @@ object Metrics {
         tokensPerSecond: Double,
         nativeHeapBytes: Long,
         availMemBytes: Long,
+        searchMs: Long,
+        manualTokens: Int,
     ): String = String.format(
         SPANISH,
-        "carga %.1f s · TTFT %.1f s · %.1f tok/s · heap %d MB · libre %d MB",
+        "carga %.1f s · TTFT %.1f s · %.1f tok/s · heap %d MB · libre %d MB · búsqueda %.1f s · manual %d tok",
         loadMs / 1000.0,
         ttftMs / 1000.0,
         tokensPerSecond,
         nativeHeapBytes / MB,
         availMemBytes / MB,
+        searchMs / 1000.0,
+        manualTokens,
     )
 }

@@ -108,11 +108,11 @@ object Assistant {
     private suspend fun load() {
         if (engine.state.value.isModelLoaded) return
 
-        val model = ModelLocation.modelPath(appContext.getExternalFilesDir(null)!!, MODEL_FILE)
+        val model = ModelLocation.filePath(appContext.getExternalFilesDir(null)!!, ModelLocation.MODELS, MODEL_FILE)
         model.parentFile?.mkdirs()
         if (!model.exists()) {
             status = "Falta el modelo. Cópialo desde la raíz del repo con:\n" +
-                ModelLocation.adbPushHint(appContext.packageName, MODEL_FILE)
+                ModelLocation.adbPushHint(appContext.packageName, ModelLocation.MODELS, MODEL_FILE)
             return
         }
 
@@ -140,7 +140,7 @@ object Assistant {
         ready = true
 
         // e5 después del chat: el motor ya ha cargado la librería y los backends de ggml.
-        val e5 = ModelLocation.modelPath(appContext.getExternalFilesDir(null)!!, E5_FILE)
+        val e5 = ModelLocation.filePath(appContext.getExternalFilesDir(null)!!, ModelLocation.MODELS, E5_FILE)
         if (!e5.exists()) {
             Log.w(TAG, "Falta ${e5.path}: cópialo con tools/cargar-movil.ps1")
         } else {
@@ -180,6 +180,8 @@ object Assistant {
             tokensPerSecond = Metrics.tokensPerSecond(tokens, firstTokenAt, endAt),
             nativeHeapBytes = Debug.getNativeHeapAllocatedSize(),
             availMemBytes = memory.availMem,
+            searchMs = 0,      // el flujo del RAG (paso 3.12) pone los valores reales
+            manualTokens = 0,
         )
         Log.i(METRICS_TAG, "$metrics · $tokens tokens")
     }
