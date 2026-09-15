@@ -327,7 +327,13 @@ internal class InferenceEngineImpl private constructor(
                     Unit
                 }
 
-                else -> throw IllegalStateException("Cannot unload model in ${state.javaClass.simpleName}")
+                else -> {
+                    // ZeroCloudAssist: aquí no hay nada generando (el bucle corre en este mismo hilo).
+                    // Sin esto, el `_cancelGeneration = true` de arriba se quedaba puesto con el modelo
+                    // aún cargado, y cada respuesta siguiente salía vacía.
+                    _cancelGeneration = false
+                    throw IllegalStateException("Cannot unload model in ${state.javaClass.simpleName}")
+                }
             }
         }
     }
