@@ -146,6 +146,15 @@
 
   footer { color: var(--faint); font-size: 12.5px; max-width: 90ch; display: grid; gap: 6px; }
   footer p { margin: 0; }
+  /* Firma: quién está detrás y cómo escribirle. */
+  .firma { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 32px; border-top: 1px solid var(--line); padding-top: 24px; }
+  .firma .quien { display: grid; gap: 6px; }
+  .firma .label { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+  .firma .marca { font: 700 36px/1 var(--display); letter-spacing: 0.01em; color: var(--text); text-decoration: none; }
+  .firma .marca b { color: var(--amber); font-weight: 700; }
+  .firma .mail { font: 600 16px/1.2 var(--mono); color: var(--amber); text-decoration: none; overflow-wrap: anywhere; }
+  .firma a:hover, .firma a:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
+  .firma a:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
   @media (prefers-reduced-motion: reduce) { .bar i, .answer .caret { animation: none; } }
   /* Al final de la hoja, para ganar a las reglas de arriba. En una columna, el móvil va arriba y sin pegarse: pegado tapaba la lista de preguntas. Crece con
      la respuesta, sin scroll propio dentro del scroll de la página. */
@@ -205,6 +214,14 @@
     <p>Grabado el 15-09-2026 en la batería de la etapa 5 del plan 02: 12 preguntas pegadas a mano en la app, con el móvil al 100 % de batería y sin cargar. Aquí están las 6 de la demo; el informe del proyecto cuenta también las que salieron mal (13 de 24 puntos en la rúbrica). Tiempos de logcat (<code>ZCA_METRICS</code>); respuestas de <code>ZCA_RESPUESTA</code>. Los fragmentos del manual se reconstruyen en el PC con la misma búsqueda que la app, que elige las mismas páginas.</p>
     <p>"Reproducir" repite la espera hasta la primera palabra y el ritmo de escritura medidos para esa respuesta. Cada página citada abre el manual en esa página. Texto y PDF del manual: ABB, solo para esta charla.</p>
   </footer>
+
+  <div class="firma">
+    <div class="quien">
+      <span class="label">Un proyecto de</span>
+      <a class="marca" href="https://ialogia.es">ialogia<b>.es</b></a>
+    </div>
+    <a class="mail" href="mailto:francisco@ialogia.es">francisco@ialogia.es</a>
+  </div>
 </div>
 
 <script id="data" type="application/json">__DATA__</script>
