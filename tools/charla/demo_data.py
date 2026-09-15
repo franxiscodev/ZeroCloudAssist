@@ -35,10 +35,18 @@ def num(patron: str, texto: str) -> float:
 
 def main() -> None:
     log = (TRABAJO / "demo-log.txt").read_text(encoding="utf-8").splitlines()
-    respuestas = [(l[:18], json.loads(l.split("ZCA_RESPUESTA", 1)[1].split(": ", 1)[1]))
-                  for l in log if "ZCA_RESPUESTA" in l]
-    metricas = [l.split("ZCA_METRICS", 1)[1].split(": ", 1)[1] for l in log if "ZCA_METRICS" in l]
-    assert len(respuestas) == len(metricas), (len(respuestas), len(metricas))
+    # Cada ZCA_METRICS va justo detrás de su ZCA_RESPUESTA; una respuesta sin tokens no tiene métricas.
+    pares = []
+    for l in log:
+        if "ZCA_RESPUESTA" in l:
+            pares.append([l[:18], json.loads(l.split("ZCA_RESPUESTA", 1)[1].split(": ", 1)[1]), None])
+        elif "ZCA_METRICS" in l and pares and pares[-1][2] is None:
+            pares[-1][2] = l.split("ZCA_METRICS", 1)[1].split(": ", 1)[1]
+    for hora, r, m in pares:
+        if m is None:
+            print(f"{hora}  sin métricas (respuesta vacía), se omite: {r['pregunta']}")
+    respuestas = [(hora, r) for hora, r, m in pares if m is not None]
+    metricas = [m for _, _, m in pares if m is not None]
 
     with closing(sqlite3.connect(f"file:{INDICE.as_posix()}?mode=ro", uri=True)) as con:
         filas = con.execute("SELECT id, pagina, tokens, vector, texto, capitulo FROM chunks ORDER BY id").fetchall()
