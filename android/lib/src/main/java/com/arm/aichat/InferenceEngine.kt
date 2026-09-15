@@ -37,6 +37,12 @@ interface InferenceEngine {
     val lastResponseTruncated: Boolean
 
     /**
+     * ZeroCloudAssist: vuelve la caché KV al final del prompt de sistema, olvidando las preguntas
+     * anteriores. Solo en [State.ModelReady]; si no, IllegalStateException.
+     */
+    suspend fun resetConversation()
+
+    /**
      * Runs a benchmark with the specified parameters.
      */
     suspend fun bench(pp: Int, tg: Int, pl: Int, nr: Int = 1): String

@@ -26,14 +26,19 @@ class MetricsTest {
     }
 
     @Test
-    fun `formato en español con segundos, tok por segundo y megas`() {
+    fun `formato en español con segundos, tok por segundo, megas, búsqueda y manual`() {
         val line = Metrics.format(
             loadMs = 6_000,
             ttftMs = 800,
             tokensPerSecond = 8.66,
             nativeHeapBytes = 120L * 1024 * 1024,
             availMemBytes = 2_000_000_000,
+            searchMs = 180,
+            manualTokens = 262,
         )
-        assertEquals("carga 6,0 s · TTFT 0,8 s · 8,7 tok/s · heap 120 MB · libre 1907 MB", line)
+        assertEquals(
+            "carga 6,0 s · TTFT 0,8 s · 8,7 tok/s · heap 120 MB · libre 1907 MB · búsqueda 0,2 s · manual 262 tok",
+            line,
+        )
     }
 }

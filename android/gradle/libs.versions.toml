@@ -10,6 +10,8 @@ appcompat = "1.7.1"
 core-ktx = "1.17.0"
 constraint-layout = "2.2.1"
 datastore-preferences = "1.2.0"
+# SQLite propio (con FTS5) en vez del del sistema: el índice del manual usa chunks_fts.
+sqlite-bundled = "2.7.1"
 
 # Material
 material = "1.13.0"
@@ -44,6 +46,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraint-layout" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore-preferences" }
+androidx-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version.ref = "sqlite-bundled" }
 
 #Material
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }

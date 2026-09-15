@@ -396,7 +396,7 @@ Cada paso se prueba en el móvil antes de montar nada encima. Si algo falla:
 | # | Paso | Detalle | Verificación |
 | --- | --- | --- | --- |
 | 2.1 | Rama | `git switch -c feat/rag-app` | — |
-| 2.2 | SQLite empaquetado | Comprobar qué AGP/SDK exige `androidx.sqlite:sqlite-bundled` 2.7.1 (y si no encaja, la última que encaje). Añadirla. Copiar `models/acs355.sqlite` con `tools/cargar-movil.ps1` (paso 3.13, adelantado aquí en su forma mínima). Al arrancar (solo en debug), abrir `files/manuales/acs355.sqlite` **en solo lectura** y ejecutar `SELECT c.id, c.pagina FROM chunks_fts f JOIN chunks c ON c.id = f.rowid WHERE chunks_fts MATCH '"0009"' LIMIT 3`; log `ZCA` | logcat muestra la p. 362. Si falla con "no such module: fts5": `requery/sqlite-android` y anotarlo en Incidencias |
+| 2.2 | SQLite empaquetado | Comprobar qué AGP/SDK exige `androidx.sqlite:sqlite-bundled` 2.7.1 (y si no encaja, la última que encaje). Añadirla. Copiar `models/acs355.sqlite` con `tools/cargar-movil.ps1` (paso 3.13, adelantado aquí en su forma mínima). Al arrancar (solo en debug), abrir `files/manuales/acs355.sqlite` **en solo lectura** y ejecutar `SELECT c.id, c.pagina FROM chunks_fts f JOIN chunks c ON c.id = f.rowid WHERE chunks_fts MATCH '"0009"' ORDER BY rank`; log `ZCA` | logcat muestra la p. 362 y las mismas filas, en el mismo orden, que la consulta en el PC (con `LIMIT 3` y sin orden salían las tres primeras por id: incidencia 1 de E2). Si falla con "no such module: fts5": `requery/sqlite-android` y anotarlo en Incidencias |
 | 2.3 | Embedder JNI | `embedder.cpp` en el mismo `.so` (`add_library(... ai_chat.cpp embedder.cpp)`), con **sus propias** variables globales. Siguiendo `examples/embedding/embedding.cpp` de b10941: modelo con `use_mmap = true`; contexto con `embeddings = true`, `pooling_type = LLAMA_POOLING_TYPE_MEAN`, `n_ctx = n_batch = n_ubatch = 512`, 6 hilos; tokenizar con tokens especiales; `llama_encode` (e5 es solo codificador); `llama_get_embeddings_seq(ctx, 0)`; normalizar L2. Se carga **después** de que el motor esté en `Initialized` (los backends de ggml ya cargados). Si el log muestra `CPU_REPACK` para e5, desactivar el reempaquetado en ese modelo (campo de `llama_model_params` según `llama.h` b10941) para conservar el mmap | Pantalla de depuración o log: para las 12 preguntas de `bateria-vectores.json`, **coseno móvil–PC ≥ 0,99** en todas y **< 0,3 s** por pregunta |
 | 2.4 | Reiniciar a prompt de sistema | En `ai_chat.cpp`: `llama_memory_seq_rm(mem, 0, system_prompt_position, -1); current_position = system_prompt_position;`. En Kotlin, `resetConversation()` (interfaz abajo), válido solo en `ModelReady` | Dos preguntas seguidas: el log de la segunda empieza a procesar en `system_prompt_position` (no a continuación de la primera) |
 | 2.5 | Memoria | Con Qwen + e5 + base cargados: `dumpsys meminfo com.ialogia.zerocloudassist`, `MemAvailable`; minimizar 60 s y volver (e5 también se libera en `onStop`) | Anotado en Incidencias; sin cierres. Si Android mata la app: primero liberar e5 entre preguntas; después, probar sin repack |
@@ -430,7 +430,7 @@ mínimo, verde, commit). Tests con `JAVA_HOME=<Temurin 17> bash gradlew :app:tes
 | 3.1 | Términos literales (**TDD**) | `rag/QueryTerms.kt`, tabla de casos de E1, más el glosario (`expansions`, comparación sin tildes, palabra entera o prefijo con `*`) y `literalClass` (fallo/alarma frente a parámetro), con los casos de `tools/tests/test_terminos.py` | Verde |
 | 3.2 | Búsqueda pura (**TDD**) | `rag/ManualSearch.kt`: `cosineTopK`, `rrf`, `select` y `prioritize` (gemelo de `priorizar`), con las tablas de E1 y de `tools/tests/test_evaluar.py` más: `cosineTopK` con 3 vectores de dimensión 2 devuelve el orden correcto | Verde |
 | 3.3 | Almacén | `rag/ManualStore.kt`: abre el `.sqlite` en solo lectura, lee `meta`, carga chunks, vectores (BLOB little-endian → `FloatArray` plano) y la tabla `glosario`, `ftsIds(query)` devuelve todos por `rank` (se priorizan y recortan a 10 en `ManualSearch`). Sin tests JVM (SQLite nativo); se verifica en el móvil en 3.14 | — |
-| 3.4 | Comprobación de `meta` (**TDD**) | `rag/MetaCheck.kt`: `null` → `Missing` con el `adb push`; `esquema = "2"` → `Incompatible`; `embeddings` distinto del e5 esperado → `Incompatible`; correcto → `Ok(ManualMeta(manual, version))` | Verde |
+| 3.4 | Comprobación de `meta` (**TDD**) | `rag/MetaCheck.kt` (sin `Missing`: quitado en 5.7 porque `Assistant` comprueba antes que el fichero existe, con su `adb push`): `esquema = "2"` → `Incompatible`; `embeddings` distinto del e5 esperado → `Incompatible`; correcto → `Ok(ManualMeta(manual, version))` | Verde |
 | 3.5 | Prompt (**TDD**) | `rag/PromptBuilder.kt`: `SYSTEM_PROMPT` (§6) y `userTurn(question, chunks)` con el formato exacto de §6. Tests: cadena exacta con 2 chunks; con 0 chunks lleva "(sin fragmentos)"; **nunca contiene "p. "**. Medir los tokens del prompt de sistema con `llama-tokenize` en el PC: ≤ 100 | Verde |
 | 3.6 | Seguridad (**TDD**) | `rag/SafetyRules.kt` con los casos de abajo | Verde |
 | 3.7 | Fuentes (**TDD**) | `rag/SourceList.kt`: una fuente por página, en el orden de los chunks; conserva capítulo y texto para desplegar | Verde |
@@ -466,10 +466,9 @@ class ManualStore(path: File) : AutoCloseable {
 }
 sealed interface MetaResult {
     data class Ok(val meta: ManualMeta) : MetaResult
-    data class Missing(val hint: String) : MetaResult
-    data class Incompatible(val reason: String, val hint: String) : MetaResult
+    data class Incompatible(val reason: String) : MetaResult
 }
-object MetaCheck { fun check(meta: Map<String, String>?, hint: String): MetaResult }
+object MetaCheck { fun check(meta: Map<String, String>): MetaResult }
 object PromptBuilder { const val SYSTEM_PROMPT: String; fun userTurn(question: String, chunks: List<Chunk>): String }
 object SafetyRules { fun check(question: String, chunks: List<Chunk>): SafetyNotice? }
 object SourceList { fun from(chunks: List<Chunk>): List<Source> }
@@ -499,6 +498,16 @@ chunks — `capacitors discharge`, `input power is applied`, `dc bus`, `electric
 2026-09-14 para B09, cambiar el ventilador: salen en 5 y 1 chunks del índice; `warning!` se
 descartó por salir en 38). Caso de test añadido: pregunta neutra con un chunk que contiene
 `disconnect it from the AC power source` → aviso.
+
+**Ampliado en E5 (2026-09-15, decisión de Francisco en G4):** en la batería, B09 salió sin tarjeta
+porque entraron los pasos 4–8 (chunks 1271 y 1272) y el aviso y el paso 1 están en el 1270. Dos
+cambios: los disparadores de los chunks se buscan también en el **chunk anterior** (id − 1) de cada
+fragmento, porque los pasos de un procedimiento siguen a su `WARNING!` (salvo `dc bus`: en el chunk
+anterior solo describe una medida en tablas de fallos y parámetros, y en la repetición sacaba la
+tarjeta en B04, F0007); y en la pregunta se añaden
+`ventilador`, `sustitu` y `reemplaz`. Casos de test añadidos: pasos sin aviso con el aviso en el
+chunk anterior → aviso; chunk anterior sin disparadores, o solo con `dc bus` → `null`; cambiar,
+sustituir o reemplazar una pieza → aviso.
 Texto del aviso: *"Antes de intervenir: corte la alimentación, espere 5 minutos a que se
 descarguen los condensadores y compruebe con un multímetro que no hay tensión."* (p. 18).
 
@@ -625,7 +634,15 @@ Gate: decisión de Francisco
 ## 8. Fuera de este plan
 
 Botón "Importar" en la app, instalación por MDM o Play privado, descarga desde un servidor de la
-empresa (introduce red y un secreto), visor del PDF en la página citada, varios manuales,
+empresa (introduce red y un secreto), visor del PDF en la página citada (pedido por Francisco el
+2026-09-14 para después del MVP: cada referencia de página, en los chips de fuentes y en la cita
+de la tarjeta de seguridad, es un enlace que abre el PDF en esa página), publicar la página de
+la charla (`tools/charla/`, un solo HTML) en un hosting propio como Hostinger (pedido por
+Francisco el 2026-09-14; antes, decidir qué hacer con el texto del manual de ABB que lleva, ver
+`docs/licencias.md`), más tipos de tarjeta de seguridad además del riesgo eléctrico (pedido
+por Francisco el 2026-09-15 al ver la tarjeta en la batería de E5: superficies calientes, arranque
+inesperado del motor, bloqueo y etiquetado; mismo mecanismo de `SafetyRules` con sus disparadores
+y su página), varios manuales,
 memoria de conversación, tema claro, OCR de la pantalla del variador, voz, bitácoras de trabajo.
 El móvil con i8mm solo entra si G4 da NO-GO en tiempo. La tabla `meta` deja preparado el cambio
 de manual sin tocar la app.

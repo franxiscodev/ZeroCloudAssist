@@ -33,8 +33,10 @@ endif()
 set(LLAMA_SRC ${CMAKE_CURRENT_LIST_DIR}/../../../../../third_party/llama.cpp)
 add_subdirectory(${LLAMA_SRC} build-llama)
 
+# ZeroCloudAssist: embedder.cpp (vectores de e5) va en la misma librería que el chat.
 add_library(${CMAKE_PROJECT_NAME} SHARED
-        ai_chat.cpp)
+        ai_chat.cpp
+        embedder.cpp)
 
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
         GGML_SYSTEM_ARCH=${GGML_SYSTEM_ARCH}

@@ -1,16 +1,21 @@
 # ZeroCloudAssist
 
-Asistente técnico industrial **100 % offline** para móvil. El técnico pregunta en español sobre
-un manual de equipo (en inglés) y recibe pasos concretos con cita de página. Sin nube, sin
-coste por consulta, sin que la documentación salga del dispositivo.
+Asistente técnico industrial **100 % offline** para móvil. El técnico pregunta en español sobre un
+manual de equipo en inglés y recibe la respuesta con las páginas del manual de las que sale. Sin
+nube, sin coste por consulta, sin que la documentación salga del dispositivo.
 
-**Estado:** prueba de concepto. Objetivo inmediato: validar que un LLM pequeño corre a
-velocidad útil en un Samsung Galaxy A53 (6 GB RAM) antes de construir nada encima.
+**Estado:** MVP del plan 02, para una demo de 5 minutos. En un Samsung Galaxy A53 de gama media
+(2022), la app busca en el manual del variador ABB ACS355 con un índice local y responde con
+Qwen2.5-1.5B sobre llama.cpp: primera palabra a los ~8 s y 9 tok/s de mediana. La app no pide el
+permiso `INTERNET`. Resultados y decisión del gate G4 en
+[informes/2026-09-15-rag-manual-a53.md](informes/2026-09-15-rag-manual-a53.md).
 
-## Plan vigente
+## Planes
 
-- [plan/01-zca-poc-hola-mundo.md](plan/01-zca-poc-hola-mundo.md): entorno Android, medición
-  de modelos en el móvil y app mínima en Kotlin con llama.cpp. Criterios go/no-go incluidos.
+- [plan/01-zca-poc-hola-mundo.md](plan/01-zca-poc-hola-mundo.md) (cerrado): entorno Android,
+  medición de modelos en el móvil y app mínima con llama.cpp.
+- [plan/02-zca-rag-manual.md](plan/02-zca-rag-manual.md): RAG sobre el manual. Índice en el PC,
+  búsqueda en el móvil, pantalla de taller y medición.
 
 Documentos de origen: [plan/zca-description.md](plan/zca-description.md),
 [plan/zca-plan.md](plan/zca-plan.md), [plan/zca-config.md](plan/zca-config.md).
@@ -19,19 +24,28 @@ Documentos de origen: [plan/zca-description.md](plan/zca-description.md),
 
 ```
 plan/        planes numerados y documentos de origen
-manuales/    PDFs del equipo piloto (ABB ACS355), ignorados por git
-models/      GGUF descargados, ignorados por git
+manuales/    PDF del equipo piloto (ABB ACS355), ignorado por git
+models/      GGUF, índice y datos de la charla, ignorados por git
 informes/    mediciones y decisiones
-docs/        entorno, versiones, notas técnicas
-android/     app Android (etapa 4 del plan 01)
-third_party/ llama.cpp como submódulo (etapa 3 del plan 01)
-tools/       scripts Python con uv (plan 02)
+docs/        entorno, modelos, batería de preguntas, glosario, diseño y licencias
+android/     app Android: módulo lib (llama.cpp y e5) y módulo app (RAG y pantalla)
+third_party/ llama.cpp como submódulo (tag b10941)
+tools/       índice del manual (Python con uv), scripts para el móvil y página de la charla
 ```
 
-## App Android (`android/`)
+## Cómo funciona
 
-Hola mundo del plan 01: carga Qwen2.5-1.5B en el móvil con llama.cpp y responde en streaming,
-sin red. Sin diseño a propósito (la estética va en el plan 02).
+1. **En el PC**, `zca-indice construir` trocea el PDF en trozos de ~130 tokens, vectoriza cada
+   trozo con multilingual-e5-small y lo guarda todo en `models/acs355.sqlite`: texto con FTS5,
+   vectores y un glosario de palabras de taller a términos del manual.
+2. **En el móvil**, cada pregunta se busca por palabras (FTS5, primero la entrada que define el
+   código o el parámetro que se nombra) y por significado (e5). Las dos listas se fusionan (RRF) y
+   entran en el prompt los 2 primeros trozos que caben en 300 tokens.
+3. **Qwen responde en español** solo con esos trozos; cada pregunta es independiente. Si la
+   pregunta o los trozos hablan de riesgo eléctrico, la app (no el modelo) muestra una tarjeta de
+   seguridad que cita la página 18 del manual.
+
+## App Android (`android/`)
 
 ### Requisitos
 
@@ -40,7 +54,7 @@ sin red. Sin diseño a propósito (la estética va en el plan 02).
 | Android SDK | plataforma 36, build-tools 36 |
 | NDK / CMake | 29.0.13113456 / 3.31.6 (las que fija el ejemplo de llama.cpp) |
 | JDK para Gradle | 17 (Gradle 8.14.3 no arranca con el Java 25 de Android Studio) |
-| Móvil | Android 13+ (API 33), arm64. Probado en Samsung A53 |
+| Móvil | Android 13+ (API 33), arm64. Probado en Samsung Galaxy A53 |
 | Submódulo | `git submodule update --init` (llama.cpp en el tag b10941) |
 
 Detalle de la instalación en [docs/entorno-android.md](docs/entorno-android.md).
@@ -58,35 +72,78 @@ La primera compilación nativa tarda unos minutos y necesita red (CMake descarga
 Windows, la ruta del repo no debe alargarse más de ~36 caracteres respecto a
 `C:\MIOS\IAlogia\proyectos\ZeroCloudAssist`: el build nativo roza el límite de 260 (MAX_PATH).
 
-### Copiar el modelo
+En los Samsung con "apps duplicadas", cada instalación puede clonar la app (un segundo icono sin
+modelos). Se quita con `adb shell pm uninstall --user 95 com.ialogia.zerocloudassist`.
 
-El GGUF va fuera del APK. Desde la raíz del repo, con la app ya instalada y abierta una vez:
+### Copiar los modelos y el índice
 
-```bash
-adb push models/qwen2.5-1.5b-instruct-q4_k_m.gguf /sdcard/Android/data/com.ialogia.zerocloudassist/files/models/
+Van fuera del APK. Desde la raíz del repo, en PowerShell, con la app instalada y abierta una vez:
+
+```powershell
+tools\cargar-movil.ps1      # -Serial <id de adb devices> si hay más de un dispositivo
 ```
 
-Si falta, la app muestra este mismo comando en pantalla. Desde Git Bash, anteponer
-`MSYS_NO_PATHCONV=1` (reescribe las rutas `/sdcard/...`); en PowerShell funciona tal cual.
+Copia `models/qwen2.5-1.5b-instruct-q4_k_m.gguf` y `models/multilingual-e5-small-q8_0.gguf` a
+`/sdcard/Android/data/com.ialogia.zerocloudassist/files/models/`, y `models/acs355.sqlite` a
+`…/files/manuales/`. Solo copia lo que falta o ha cambiado, y comprueba el SHA256 en el móvil. Si
+falta alguno, la app dice cuál y muestra el `adb push` exacto. Desde Git Bash, los `adb push` a
+mano necesitan `MSYS_NO_PATHCONV=1` delante: Git Bash reescribe las rutas `/sdcard/...`.
 
 ### Leer métricas
 
 ```bash
-adb logcat -s ZCA ZCA_METRICS
+adb logcat -s ZCA ZCA_METRICS ZCA_RESPUESTA
 ```
 
-`ZCA` registra la carga y la liberación del modelo; `ZCA_METRICS` una línea por respuesta:
-`carga 4,7 s · TTFT 0,8 s · 10,3 tok/s · heap 1417 MB · libre 1680 MB · 200 tokens`. La misma
-línea (sin tokens) aparece en pantalla. Los hilos efectivos se ven en `adb logcat -s ai-chat`
-(`init_context: Using 6 threads`).
+- `ZCA`: carga y liberación de los modelos, índice abierto y cada búsqueda (páginas y si hubo
+  tarjeta de seguridad).
+- `ZCA_METRICS`: una línea por respuesta, la misma que se ve en pantalla:
+  `carga 5,8 s · TTFT 7,9 s · 9,2 tok/s · heap 1604 MB · libre 1379 MB · búsqueda 0,6 s · manual 210 tok · 36 tokens`.
+  El TTFT cuenta desde que se pulsa "Preguntar", con la búsqueda dentro.
+- `ZCA_RESPUESTA`: JSON con la pregunta, las páginas, la tarjeta, si se cortó y la respuesta.
 
-Parámetros fijos (plan 01): 6 hilos, `n_ctx` 2048, temperatura 0,2, máximo 200 tokens, prompt de
-sistema de §5. Preguntas de prueba en [docs/preguntas-protocolo.txt](docs/preguntas-protocolo.txt).
+`tools/estres-movil.ps1` hace 20 preguntas seguidas por ADB y resume métricas, fallos y memoria.
 
-## Modelos (descarga manual, ver plan 01 §2A)
+Parámetros: 6 hilos, `n_ctx` 2048, temperatura 0,2, máximo 400 tokens, manual de hasta 300 tokens
+en 2 trozos. El prompt de sistema está en `rag/PromptBuilder.kt` (plan 02, §6). La semilla es
+aleatoria: la misma pregunta puede dar otro texto.
+
+## Índice del manual (`tools/`)
+
+Necesita el PDF `manuales/EN_ACS355_UM_E_A5.pdf`, `models/multilingual-e5-small-q8_0.gguf` (se
+convierte con `tools/convertir_e5.py`, ver [docs/modelos.md](docs/modelos.md)),
+`models/qwen2.5-tokenizer.json` y `llama-server` de llama.cpp.
+
+```bash
+llama-server -m models/multilingual-e5-small-q8_0.gguf --embedding --pooling mean --port 8090   # en otra terminal
+cd tools
+uv run zca-indice construir     # → models/acs355.sqlite, en ~1 min
+uv run zca-indice evaluar       # recall@2 de FTS5, vectores e híbrida con docs/bateria-manual.yaml
+uv run pytest -m "not manual"   # lo mismo que la CI
+```
+
+Las rutas son relativas a la raíz del repo. En la consola de Windows con la salida redirigida,
+`evaluar` necesita `PYTHONIOENCODING=utf-8` (imprime ✓ y ✗).
+
+`tools/charla/` genera una página con respuestas reales del móvil para las charlas; sus datos van
+a `models/charla/`, porque llevan texto del manual.
+
+## CI
+
+GitHub Actions en cada PR y en `main`: `android-unit` (tests JVM de la app) y `tools` (pytest sin
+los tests `manual`, que necesitan el PDF y los modelos). Los dos son checks obligatorios de `main`.
+
+## Modelos
 
 | Modelo | Fichero | Tamaño |
 | --- | --- | --- |
 | Qwen2.5-1.5B-Instruct Q4_K_M | `qwen2.5-1.5b-instruct-q4_k_m.gguf` | 1,12 GB |
-| Llama 3.2 1B Instruct Q4_K_M | `Llama-3.2-1B-Instruct-Q4_K_M.gguf` | 808 MB |
-| Qwen2.5-0.5B-Instruct Q4_K_M | `qwen2.5-0.5b-instruct-q4_k_m.gguf` | 491 MB |
+| multilingual-e5-small Q8_0 | `multilingual-e5-small-q8_0.gguf` | 132 MB |
+| Tokenizador de Qwen2.5 (para contar tokens en el PC) | `qwen2.5-tokenizer.json` | 7 MB |
+
+SHA256, origen y los modelos descartados en el plan 01, en [docs/modelos.md](docs/modelos.md).
+
+## Licencias
+
+Fuentes OFL de la app y uso del manual de ABB en [docs/licencias.md](docs/licencias.md). El
+índice y los datos de la charla llevan texto del manual y no se versionan.

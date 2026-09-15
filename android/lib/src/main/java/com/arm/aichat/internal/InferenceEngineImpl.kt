@@ -111,6 +111,18 @@ internal class InferenceEngineImpl private constructor(
     private var _lastResponseTruncated = false
     override val lastResponseTruncated: Boolean get() = _lastResponseTruncated
 
+    // ZeroCloudAssist: caché KV de vuelta al final del prompt de sistema (ai_chat.cpp).
+    @FastNative
+    private external fun resetToSystemPrompt()
+
+    override suspend fun resetConversation() =
+        withContext(llamaDispatcher) {
+            check(_state.value is InferenceEngine.State.ModelReady) {
+                "Cannot reset conversation in ${_state.value.javaClass.simpleName}!"
+            }
+            resetToSystemPrompt()
+        }
+
     @FastNative
     private external fun unload()
 
@@ -315,7 +327,13 @@ internal class InferenceEngineImpl private constructor(
                     Unit
                 }
 
-                else -> throw IllegalStateException("Cannot unload model in ${state.javaClass.simpleName}")
+                else -> {
+                    // ZeroCloudAssist: aquí no hay nada generando (el bucle corre en este mismo hilo).
+                    // Sin esto, el `_cancelGeneration = true` de arriba se quedaba puesto con el modelo
+                    // aún cargado, y cada respuesta siguiente salía vacía.
+                    _cancelGeneration = false
+                    throw IllegalStateException("Cannot unload model in ${state.javaClass.simpleName}")
+                }
             }
         }
     }

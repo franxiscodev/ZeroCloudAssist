@@ -435,6 +435,9 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
 
     // Decode formatted user prompts
     auto user_tokens = common_tokenize(g_context, formatted_user_prompt, has_chat_template, has_chat_template);
+    // ZeroCloudAssist: dónde empieza la pregunta en la caché KV (verificación del paso 2.4).
+    LOGi("%s: %d tokens from position %d (system prompt ends at %d)", __func__,
+         (int) user_tokens.size(), current_position, system_prompt_position);
     for (auto id: user_tokens) {
         LOGv("token: `%s`\t -> `%d`", common_token_to_piece(g_context, id).c_str(), id);
     }
@@ -460,6 +463,22 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
     // con lo que el límite real era n_predict + tamaño del prompt.
     stop_generation_position = current_position + n_predict;
     return 0;
+}
+
+/**
+ * ZeroCloudAssist: vuelve la caché KV al final del prompt de sistema (plan 02, paso 2.4). Cada
+ * pregunta del RAG lleva sus propios fragmentos del manual y no se apoya en las anteriores. El
+ * historial del chat también se recorta al mensaje de sistema: si no, la plantilla formatea la
+ * pregunta siguiente como continuación de la conversación borrada.
+ */
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_arm_aichat_internal_InferenceEngineImpl_resetToSystemPrompt(JNIEnv * /*unused*/, jobject /*unused*/) {
+    llama_memory_seq_rm(llama_get_memory(g_context), 0, system_prompt_position, -1);
+    current_position = system_prompt_position;
+    if (chat_msgs.size() > 1) chat_msgs.resize(1);  // sin plantilla, chat_msgs está vacío
+    reset_short_term_states();
+    LOGi("%s: KV cache back to the end of the system prompt (%d)", __func__, system_prompt_position);
 }
 
 static bool is_valid_utf8(const char *string) {

@@ -3,17 +3,18 @@ package com.ialogia.zerocloudassist
 import java.io.File
 
 /**
- * El GGUF va fuera del APK, en la carpeta externa de la app (`getExternalFilesDir(null)`), que
- * no necesita permisos y es escribible por `adb push`.
+ * Los GGUF y el índice del manual van fuera del APK, en la carpeta externa de la app
+ * (`getExternalFilesDir(null)`), que no necesita permisos y es escribible por `adb push`.
  */
 object ModelLocation {
 
-    private const val MODELS_DIR = "models"
+    const val MODELS = "models"
+    const val MANUALS = "manuales"
 
-    fun modelPath(externalFilesDir: File, name: String): File =
-        File(File(externalFilesDir, MODELS_DIR), name)
+    fun filePath(externalFilesDir: File, subdir: String, name: String): File =
+        File(File(externalFilesDir, subdir), name)
 
-    /** Comando para copiar el modelo desde la raíz del repo (donde está `models/`). */
-    fun adbPushHint(applicationId: String, name: String): String =
-        "adb push $MODELS_DIR/$name /sdcard/Android/data/$applicationId/files/$MODELS_DIR/"
+    /** Comando para copiar el fichero desde la raíz del repo: todos se generan en `models/`. */
+    fun adbPushHint(applicationId: String, subdir: String, name: String): String =
+        "adb push models/$name /sdcard/Android/data/$applicationId/files/$subdir/"
 }
