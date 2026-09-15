@@ -638,7 +638,10 @@ empresa (introduce red y un secreto), visor del PDF en la página citada (pedido
 de la tarjeta de seguridad, es un enlace que abre el PDF en esa página), publicar la página de
 la charla (`tools/charla/`, un solo HTML) en un hosting propio como Hostinger (pedido por
 Francisco el 2026-09-14; antes, decidir qué hacer con el texto del manual de ABB que lleva, ver
-`docs/licencias.md`), varios manuales,
+`docs/licencias.md`), más tipos de tarjeta de seguridad además del riesgo eléctrico (pedido
+por Francisco el 2026-09-15 al ver la tarjeta en la batería de E5: superficies calientes, arranque
+inesperado del motor, bloqueo y etiquetado; mismo mecanismo de `SafetyRules` con sus disparadores
+y su página), varios manuales,
 memoria de conversación, tema claro, OCR de la pantalla del variador, voz, bitácoras de trabajo.
 El móvil con i8mm solo entra si G4 da NO-GO en tiempo. La tabla `meta` deja preparado el cambio
 de manual sin tocar la app.
