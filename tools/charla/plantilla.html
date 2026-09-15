@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ZCA en el A53</title>
-<meta name="description" content="Un asistente técnico que vive en un móvil de gama media de 2022: responde en español con el manual del variador ABB ACS355, sin Internet. Respuestas reales grabadas en el teléfono.">
+<meta name="description" content="Un asistente técnico que vive en un móvil de gama media de 2022: le preguntas en español y la IA del móvil busca en el manual del variador ABB ACS355 y responde en segundos, sin Internet.">
 <!-- Página de una charla, temporal: se comparte por enlace, no se indexa. -->
 <meta name="robots" content="noindex">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="es_ES">
 <meta property="og:url" content="https://zca.ialogia.es/">
 <meta property="og:title" content="Donde no llega la red, llega la IA">
-<meta property="og:description" content="Un asistente técnico que vive en un móvil de gama media de 2022: responde en español con el manual del variador ABB ACS355, sin Internet. Respuestas reales grabadas en el teléfono.">
+<meta property="og:description" content="Un asistente técnico que vive en un móvil de gama media de 2022: le preguntas en español y la IA del móvil busca en el manual del variador ABB ACS355 y responde en segundos, sin Internet.">
 <!-- ?v= es la huella de og.png (charla_pagina.py): las redes guardan la imagen por URL y así
      la vuelven a pedir cuando cambia. -->
 <meta property="og:image" content="https://zca.ialogia.es/og.png?v=__OG_V__">
@@ -188,7 +188,7 @@
     <ul class="facts" id="facts"></ul>
   </header>
 
-  <p class="recorded"><b>Debajo, <span id="n-rec"></span> respuestas reales</b> grabadas en el A53, todo dentro del teléfono · sin retocar ni una palabra</p>
+  <p class="recorded"><b>Debajo, <span id="n-rec"></span> preguntas</b> y lo que la IA del A53 respondió en el momento, sin red · palabra por palabra, sin editar</p>
 
   <div class="stage">
     <div class="picker">
@@ -211,7 +211,7 @@
         <div class="composer"><div class="field">Pregunta sobre el variador…</div><div class="ask">Preguntar</div></div>
       </div></div>
       <div class="controls">
-        <button class="play" id="play">▶ Reproducir a velocidad real</button>
+        <button class="play" id="play">▶ Verla responder en tiempo real</button>
         <div class="speed" role="group" aria-label="Velocidad">
           <button id="s1" aria-pressed="true">×1</button><button id="s2" aria-pressed="false">×2</button><button id="s4" aria-pressed="false">×4</button>
         </div>
@@ -222,8 +222,8 @@
   </div>
 
   <footer>
-    <p>Grabado el 15-09-2026 en la batería de la etapa 5 del plan 02: 12 preguntas pegadas a mano en la app, con el móvil al 100 % de batería y sin cargar. Aquí están las 6 de la demo; el informe del proyecto cuenta también las que salieron mal (13 de 24 puntos en la rúbrica). Tiempos de logcat (<code>ZCA_METRICS</code>); respuestas de <code>ZCA_RESPUESTA</code>. Los fragmentos del manual se reconstruyen en el PC con la misma búsqueda que la app, que elige las mismas páginas.</p>
-    <p>"Reproducir" repite la espera hasta la primera palabra y el ritmo de escritura medidos para esa respuesta. Cada página citada abre el manual en esa página. Texto y PDF del manual: ABB, solo para esta charla.</p>
+    <p>Preguntas hechas a la IA en el A53 el 15-09-2026, en la batería de la etapa 5 del plan 02: 12 pegadas a mano en la app, con el móvil al 100 % de batería y sin cargar. Aquí están las 6 de la demo; el informe del proyecto cuenta también las que salieron mal (13 de 24 puntos en la rúbrica). Tiempos de logcat (<code>ZCA_METRICS</code>); respuestas de <code>ZCA_RESPUESTA</code>. Los fragmentos del manual se reconstruyen en el PC con la misma búsqueda que la app, que elige las mismas páginas.</p>
+    <p>"Verla responder" repite la espera hasta la primera palabra y el ritmo de escritura que midió el móvil en esa respuesta. Cada página citada abre el manual en esa página. Texto y PDF del manual: ABB, solo para esta charla.</p>
   </footer>
 
   <div class="firma">
@@ -258,7 +258,7 @@
   $('facts').innerHTML = [
     ['0', 'conexiones a Internet: la app no tiene ese permiso'],
     ['2022', 'Galaxy A53, gama media'],
-    [items.length, 'respuestas grabadas'],
+    [items.length, 'preguntas respondidas por la IA del móvil'],
     [fmt(mid) + ' s', 'hasta la primera palabra (mediana)'],
     [fmt(Math.min(...toks)) + '–' + fmt(Math.max(...toks)), 'tokens por segundo'],
     [fmt(Math.min(...search)) + '–' + fmt(Math.max(...search)) + ' s', 'buscando en el manual'],
