@@ -8,6 +8,7 @@ junto a `og.png` (`og_imagen.py`) y `manual-acs355.pdf`, el PDF del manual al qu
 páginas citadas. Lleva texto del manual de ABB: ver `docs/licencias.md` antes de publicarla.
 """
 
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -84,7 +85,11 @@ def main() -> None:
 
     plantilla = (AQUI / "plantilla.html").read_text(encoding="utf-8")
     json_seguro = json.dumps(salida, ensure_ascii=False).replace("</", "<\\/")
-    (TRABAJO / "index.html").write_text(plantilla.replace("__DATA__", json_seguro), encoding="utf-8")
+    # Huella de og.png para su URL (?v=): las redes guardan la imagen por URL y así la renuevan.
+    og = TRABAJO / "og.png"
+    version = hashlib.sha256(og.read_bytes()).hexdigest()[:8] if og.exists() else "sin-og"
+    pagina = plantilla.replace("__DATA__", json_seguro).replace("__OG_V__", version)
+    (TRABAJO / "index.html").write_text(pagina, encoding="utf-8")
     print(f"{len(salida)} respuestas, {sum(s['destacada'] for s in salida)} destacadas, "
           f"{sum(1 for s in salida for f in s['fuentes'] if not f['texto'])} fuentes sin fragmento → "
           f"{TRABAJO / 'index.html'}")
