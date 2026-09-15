@@ -158,8 +158,10 @@
   .firma .wordmark b { font-weight: 700; color: #FFFFFF; }
   .firma .wordmark .logia { font-weight: 400; color: #00FFFF; }
   .firma .wordmark .es { margin-left: 1px; font-weight: 300; font-size: 17px; color: #889393; }
-  /* El correo con el primario de ialogia.es (#4DD9D9): su manual guarda el #00FFFF puro para isotipo y wordmark. */
-  .firma .mail { font: 600 16px/1.2 var(--mono); color: #4DD9D9; text-decoration: none; overflow-wrap: anywhere; }
+  /* El correo combina blanco y cian como el wordmark; el cian es el primario de ialogia.es (#4DD9D9),
+     porque su manual guarda el #00FFFF puro para isotipo y wordmark. */
+  .firma .mail { font: 600 16px/1.2 var(--mono); color: #FFFFFF; text-decoration: none; overflow-wrap: anywhere; }
+  .firma .mail span { color: #4DD9D9; }
   .firma a:hover, .firma a:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
   .firma a:focus-visible { outline: 2px solid #4DD9D9; outline-offset: 3px; }
   @media (prefers-reduced-motion: reduce) { .bar i, .answer .caret { animation: none; } }
@@ -230,7 +232,7 @@
         <span class="wordmark"><b>IA</b><span class="logia">logia</span><span class="es">.es</span></span>
       </a>
     </div>
-    <a class="mail" href="mailto:francisco@ialogia.es">francisco@ialogia.es</a>
+    <a class="mail" href="mailto:francisco@ialogia.es">francisco@<span>ialogia.es</span></a>
   </div>
 </div>
 
