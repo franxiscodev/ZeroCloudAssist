@@ -20,6 +20,9 @@ object SafetyRules {
         "capacitors discharge", "input power is applied", "dc bus", "electricity warning",
         "instructions in chapter safety", "disconnect it from the ac power",
     )
+    // En el chunk anterior, "dc bus" solo describe una medida en tablas de fallos y parámetros: en
+    // E5 sacaba la tarjeta en F0007 (B04) por la fila de fallo que la precede.
+    private val PREVIOUS_TRIGGERS = CHUNK_TRIGGERS - "dc bus"
 
     /**
      * [previous] da el chunk anterior de cada fragmento: los pasos de un procedimiento siguen a su
@@ -27,9 +30,12 @@ object SafetyRules {
      */
     fun check(question: String, chunks: List<Chunk>, previous: (Chunk) -> Chunk? = { null }): SafetyNotice? {
         val q = QueryTerms.normalize(question)
-        val scanned = chunks + chunks.mapNotNull(previous)
         val risky = QUESTION_TRIGGERS.any { it in q } ||
-            scanned.any { chunk -> QueryTerms.normalize(chunk.text).let { text -> CHUNK_TRIGGERS.any { it in text } } }
+            chunks.any { mentions(it, CHUNK_TRIGGERS) } ||
+            chunks.mapNotNull(previous).any { mentions(it, PREVIOUS_TRIGGERS) }
         return if (risky) SafetyNotice(NOTICE, PAGE) else null
     }
+
+    private fun mentions(chunk: Chunk, triggers: List<String>): Boolean =
+        QueryTerms.normalize(chunk.text).let { text -> triggers.any { it in text } }
 }

@@ -503,10 +503,12 @@ descartó por salir en 38). Caso de test añadido: pregunta neutra con un chunk 
 **Ampliado en E5 (2026-09-15, decisión de Francisco en G4):** en la batería, B09 salió sin tarjeta
 porque entraron los pasos 4–8 (chunks 1271 y 1272) y el aviso y el paso 1 están en el 1270. Dos
 cambios: los disparadores de los chunks se buscan también en el **chunk anterior** (id − 1) de cada
-fragmento, porque los pasos de un procedimiento siguen a su `WARNING!`; y en la pregunta se añaden
+fragmento, porque los pasos de un procedimiento siguen a su `WARNING!` (salvo `dc bus`: en el chunk
+anterior solo describe una medida en tablas de fallos y parámetros, y en la repetición sacaba la
+tarjeta en B04, F0007); y en la pregunta se añaden
 `ventilador`, `sustitu` y `reemplaz`. Casos de test añadidos: pasos sin aviso con el aviso en el
-chunk anterior → aviso; chunk anterior sin disparadores → `null`; cambiar, sustituir o reemplazar
-una pieza → aviso.
+chunk anterior → aviso; chunk anterior sin disparadores, o solo con `dc bus` → `null`; cambiar,
+sustituir o reemplazar una pieza → aviso.
 Texto del aviso: *"Antes de intervenir: corte la alimentación, espere 5 minutos a que se
 descarguen los condensadores y compruebe con un multímetro que no hay tensión."* (p. 18).
 

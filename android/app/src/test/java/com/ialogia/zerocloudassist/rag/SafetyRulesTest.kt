@@ -62,6 +62,19 @@ class SafetyRulesTest {
     }
 
     @Test
+    fun `dc bus en el trozo anterior no avisa`() {
+        // B04 en E5: el 1228 (F0007) va detrás de una fila de fallos que describe una medida.
+        val faultRow = Chunk(1227, 361, "Fault tracing",
+            "Measure the input and DC voltage during start, stop and running by using a multimeter " +
+                "or check parameter 0107 DC BUS VOLTAGE.", 60)
+        val f0007 = Chunk(1228, 361, "Fault tracing",
+            "0007 AI1 LOSS\nAnalog input AI1 signal has fallen below limit defined by parameter 3021.", 120)
+        assertNull(SafetyRules.check("Aparece F0007 en la pantalla del variador", listOf(f0007)) {
+            if (it.id == 1228L) faultRow else null
+        })
+    }
+
+    @Test
     fun `el trozo anterior sin disparadores no avisa`() {
         val before = chunk("1201 CONST SPEED SEL\nActivates constant speeds.").copy(id = 1)
         val after = neutral.copy(id = 2)
