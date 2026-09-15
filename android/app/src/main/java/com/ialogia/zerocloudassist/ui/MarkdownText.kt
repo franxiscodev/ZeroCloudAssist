@@ -30,7 +30,7 @@ fun MarkdownText(text: String, modifier: Modifier = Modifier) {
                 is Block.Paragraph -> Text(block.spans.annotated(), style = ZcaType.answer)
                 is Block.ListItem -> Row {
                     Text(
-                        if (block.ordered) "${block.number}." else "•",
+                        block.number?.let { "$it." } ?: "•",
                         style = ZcaType.code.copy(fontWeight = FontWeight.SemiBold, color = ZcaColors.amber, lineHeight = 22.sp),
                         modifier = Modifier.width(32.dp),  // "10." cabe en una línea (con 24 dp se partía)
                     )

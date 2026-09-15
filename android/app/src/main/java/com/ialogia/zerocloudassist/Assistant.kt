@@ -55,7 +55,8 @@ data class Blocked(val title: String, val reason: String?, val files: List<Requi
  */
 object Assistant {
     const val MODEL_FILE = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
-    private const val E5_FILE = "multilingual-e5-small-q8_0.gguf"
+    // El mismo nombre que exige MetaCheck: los vectores de la pregunta y los del índice, del mismo modelo.
+    private const val E5_FILE = "${MetaCheck.EMBEDDINGS}.gguf"
     private const val MANUAL_FILE = "acs355.sqlite"
     private const val MAX_TOKENS = 400
     private const val TOP_K = 10  // candidatos de FTS5 y de vectores antes de fusionar (como en G3)
@@ -82,10 +83,9 @@ object Assistant {
         private set
     var ready by mutableStateOf(false)
         private set
-    var generating by mutableStateOf(false)
-        private set
     var phase by mutableStateOf<Phase>(Phase.Idle)
         private set
+    val generating: Boolean get() = phase != Phase.Idle
     /** Qué fichero falta o no vale; `null` si están todos. */
     var blocked by mutableStateOf<Blocked?>(null)
         private set
@@ -100,18 +100,15 @@ object Assistant {
 
     private class Needed(val label: String, val title: String, val pill: String, val subdir: String, val name: String)
 
+    private val MANUAL = Needed("Índice del manual", "Falta el manual", "sin manual", ModelLocation.MANUALS, MANUAL_FILE)
     private val NEEDED = listOf(
         Needed("Modelo de chat", "Falta el modelo de chat", "sin modelo", ModelLocation.MODELS, MODEL_FILE),
         Needed("Modelo de búsqueda", "Falta el modelo de búsqueda", "sin modelo", ModelLocation.MODELS, E5_FILE),
-        Needed("Índice del manual", "Falta el manual", "sin manual", ModelLocation.MANUALS, MANUAL_FILE),
+        MANUAL,
     )
 
-    /** El índice abierto y lo que la búsqueda consulta en cada pregunta. Se queda abierto al salir. */
-    private class Manual(val store: ManualStore, val meta: ManualMeta) {
-        val texts = store.chunks.associate { it.id to it.text }
-        val chapters = store.chunks.associate { it.id to it.chapter }
-        val tokens = store.chunks.associate { it.id to it.tokens }
-    }
+    /** El índice abierto, con su `meta` ya comprobada. Se queda abierto al salir. */
+    private class Manual(val store: ManualStore, val meta: ManualMeta)
 
     private var manual: Manual? = null
 
@@ -133,7 +130,6 @@ object Assistant {
     /** Devuelve `false` si la pregunta no se ha aceptado (sin cargar, generando, vacía). */
     fun generate(prompt: String): Boolean {
         if (!ready || generating || prompt.isBlank()) return false
-        generating = true
         phase = Phase.Searching
         metrics = ""
         entries = Conversation.ask(entries, prompt)
@@ -148,7 +144,6 @@ object Assistant {
                 entries = Conversation.interrupt(entries)
                 status = "Error al generar: ${e.message ?: e.javaClass.simpleName}"
             } finally {
-                generating = false
                 phase = Phase.Idle
             }
         }
@@ -164,17 +159,19 @@ object Assistant {
         job = scope.launch { mutex.withLock { block() } }
     }
 
+    private fun hint(n: Needed) = ModelLocation.adbPushHint(appContext.packageName, n.subdir, n.name)
+
     private suspend fun load() {
         if (engine.state.value.isModelLoaded && Embedder.isLoaded && manual != null) return
 
         val dir = appContext.getExternalFilesDir(null)!!
         val files = NEEDED.map { ModelLocation.filePath(dir, it.subdir, it.name) }
-        files.forEach { it.parentFile?.mkdirs() }  // para que `adb push` tenga dónde copiar
-        val required = NEEDED.zip(files) { n, f -> RequiredFile(n.label, "${n.subdir}/${n.name}", f.exists()) }
-        val missing = required.indexOfFirst { !it.present }
-        if (missing >= 0) {
-            val n = NEEDED[missing]
-            block(Blocked(n.title, null, required, ModelLocation.adbPushHint(appContext.packageName, n.subdir, n.name), n.pill))
+        val required = withContext(Dispatchers.IO) {
+            files.forEach { it.parentFile?.mkdirs() }  // para que `adb push` tenga dónde copiar
+            NEEDED.zip(files) { n, f -> RequiredFile(n.label, "${n.subdir}/${n.name}", f.exists()) }
+        }
+        NEEDED.zip(required).firstOrNull { !it.second.present }?.let { (n, _) ->
+            block(Blocked(n.title, null, required, hint(n), n.pill))
             return
         }
         val (model, e5, index) = files
@@ -222,8 +219,7 @@ object Assistant {
     /** Abre el índice y comprueba su `meta`; si no vale, lo deja en [blocked]. */
     private suspend fun openManual(file: File, required: List<RequiredFile>): Boolean {
         if (manual != null) return true
-        val hint = ModelLocation.adbPushHint(appContext.packageName, ModelLocation.MANUALS, MANUAL_FILE)
-        fun incompatible(reason: String) = block(Blocked("El índice no vale", reason, required, hint, "sin manual"))
+        fun incompatible(reason: String) = block(Blocked("El índice no vale", reason, required, hint(MANUAL), MANUAL.pill))
 
         return withContext(Dispatchers.IO) {
             val t0 = SystemClock.elapsedRealtime()
@@ -234,9 +230,10 @@ object Assistant {
                 incompatible("No se pudo abrir: ${e.message}")
                 return@withContext false
             }
-            when (val result = MetaCheck.check(store.meta, hint)) {
+            when (val result = MetaCheck.check(store.meta)) {
                 is MetaResult.Ok -> {
-                    manual = Manual(store, result.meta).also { it.store.vectors; it.store.glossary }
+                    store.preload()
+                    manual = Manual(store, result.meta)
                     Log.i(TAG, "Índice ${result.meta.version}: ${store.chunks.size} chunks en " +
                         "${SystemClock.elapsedRealtime() - t0} ms")
                     true
@@ -246,18 +243,13 @@ object Assistant {
                     incompatible("${result.reason}.")
                     false
                 }
-                is MetaResult.Missing -> {  // no pasa: el fichero existe
-                    store.close()
-                    false
-                }
             }
         }
     }
 
     /** Búsqueda híbrida decidida en G3 (plan 02, §5): la misma que mide `zca-indice evaluar`. */
     private suspend fun retrieve(question: String): List<Chunk> {
-        val manual = manual!!
-        val store = manual.store
+        val store = manual!!.store
         val query = Embedder.embed("query: $question")
         return withContext(Dispatchers.IO) {
             val fts = QueryTerms.ftsQuery(question, store.glossary)?.let(store::ftsIds).orEmpty()
@@ -267,11 +259,11 @@ object Assistant {
                 null -> null
             }
             val ftsTop = ManualSearch.prioritize(
-                fts, manual.texts, manual.chapters, QueryTerms.literals(question), preferred,
+                fts, store.texts, store.chapters, QueryTerms.literals(question), preferred,
             ).take(TOP_K)
             val vectorTop = ManualSearch.cosineTopK(query, store.vectors, store.dimension, TOP_K)
                 .map { store.chunks[it].id }
-            ManualSearch.select(ManualSearch.rrf(listOf(ftsTop, vectorTop)), manual.tokens)
+            ManualSearch.select(ManualSearch.rrf(listOf(ftsTop, vectorTop)), store.tokens)
                 .map(store.byId::getValue)
         }
     }

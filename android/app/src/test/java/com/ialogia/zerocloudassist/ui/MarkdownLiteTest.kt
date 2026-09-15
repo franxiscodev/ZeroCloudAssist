@@ -17,14 +17,14 @@ class MarkdownLiteTest {
     @Test
     fun `lista numerada`() {
         assertEquals(
-            listOf(Block.ListItem(ordered = true, number = 1, spans = listOf(Span("Corte la alimentación")))),
+            listOf(Block.ListItem(number = 1, spans = listOf(Span("Corte la alimentación")))),
             MarkdownLite.parse("1. Corte la alimentación"),
         )
     }
 
     @Test
     fun `lista con guion o asterisco`() {
-        val item = listOf(Block.ListItem(ordered = false, number = null, spans = listOf(Span("Revise el ventilador"))))
+        val item = listOf(Block.ListItem(number = null, spans = listOf(Span("Revise el ventilador"))))
         assertEquals(item, MarkdownLite.parse("- Revise el ventilador"))
         assertEquals(item, MarkdownLite.parse("* Revise el ventilador"))
     }
@@ -49,8 +49,8 @@ class MarkdownLiteTest {
         assertEquals(
             listOf(
                 Block.Paragraph(listOf(Span("Revise:"))),
-                Block.ListItem(ordered = true, number = 1, spans = listOf(Span("El ventilador"))),
-                Block.ListItem(ordered = true, number = 2, spans = listOf(Span("La temperatura", bold = true))),
+                Block.ListItem(number = 1, spans = listOf(Span("El ventilador"))),
+                Block.ListItem(number = 2, spans = listOf(Span("La temperatura", bold = true))),
             ),
             MarkdownLite.parse("Revise:\n\n1. El ventilador\n2. **La temperatura**\n"),
         )

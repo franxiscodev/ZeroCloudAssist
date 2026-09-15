@@ -2,7 +2,6 @@ package com.arm.aichat
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /**
@@ -15,8 +14,8 @@ object Embedder {
     private val dispatcher = Dispatchers.IO.limitedParallelism(1)
 
     @Volatile
-    private var loaded = false
-    val isLoaded: Boolean get() = loaded
+    var isLoaded = false
+        private set
 
     private external fun nativeLoad(pathToModel: String): Boolean
     private external fun nativeEmbed(text: String): FloatArray?
@@ -27,20 +26,18 @@ object Embedder {
      * los backends de ggml. Devuelve `false` si no pudo cargar.
      */
     suspend fun load(pathToModel: String): Boolean = withContext(dispatcher) {
-        if (!loaded) loaded = nativeLoad(pathToModel)
-        loaded
+        if (!isLoaded) isLoaded = nativeLoad(pathToModel)
+        isLoaded
     }
 
     /** Vector L2-normalizado de 384. El llamador antepone "query: ". */
     suspend fun embed(text: String): FloatArray = withContext(dispatcher) {
-        check(loaded) { "Embedder sin cargar" }
+        check(isLoaded) { "Embedder sin cargar" }
         nativeEmbed(text) ?: throw RuntimeException("No se pudo vectorizar")
     }
 
-    fun unload() {
-        runBlocking(dispatcher) {
-            if (loaded) nativeUnload()
-            loaded = false
-        }
+    suspend fun unload() = withContext(dispatcher) {
+        if (isLoaded) nativeUnload()
+        isLoaded = false
     }
 }

@@ -15,11 +15,10 @@ object PromptBuilder {
 
     fun userTurn(question: String, chunks: List<Chunk>): String {
         val fragments = if (chunks.isEmpty()) {
-            "Fragmentos del manual (en inglés): (sin fragmentos)\n"
+            " (sin fragmentos)\n"
         } else {
-            "Fragmentos del manual (en inglés):\n" +
-                chunks.withIndex().joinToString("") { (i, chunk) -> "[${i + 1}] ${chunk.chapter}\n${chunk.text}\n" }
+            "\n" + chunks.withIndex().joinToString("") { (i, chunk) -> "[${i + 1}] ${chunk.chapter}\n${chunk.text}\n" }
         }
-        return "$fragments\nPregunta: $question"
+        return "Fragmentos del manual (en inglés):$fragments\nPregunta: $question"
     }
 }

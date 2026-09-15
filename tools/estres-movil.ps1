@@ -58,8 +58,9 @@ $desde = "$((adb @dispositivo shell date +%s).Trim()).000"
 Show-Memory 'antes'
 $fin = 'ZCA_RESPUESTA|Error al generar|Failed'
 $conMetricas = 0
+$total = [Math]::Min($Preguntas, $lista.Count)
 
-for ($n = 0; $n -lt [Math]::Min($Preguntas, $lista.Count); $n++) {
+for ($n = 0; $n -lt $total; $n++) {
     $antes = (Get-Lines $fin).Count
     $metricasAntes = (Get-Lines 'ZCA_METRICS').Count
 
@@ -79,17 +80,17 @@ for ($n = 0; $n -lt [Math]::Min($Preguntas, $lista.Count); $n++) {
     while ((Get-Date) -lt $limite -and (Get-Lines $fin).Count -le $antes) { Start-Sleep -Seconds 3 }
     Start-Sleep -Seconds 1   # la linea de metricas va justo detras de la respuesta
     $segundos = [int]((Get-Date) - $inicio).TotalSeconds
-    $metricas = Get-Lines 'ZCA_METRICS' | Select-Object -Last 1
-    if ((Get-Lines 'ZCA_METRICS').Count -gt $metricasAntes) {
+    $metricas = Get-Lines 'ZCA_METRICS'   # un solo volcado: la cuenta y la ultima linea, del mismo
+    if ($metricas.Count -gt $metricasAntes) {
         $conMetricas++
-        "P$($n + 1) ($segundos s): $($metricas.Line -replace '.*ZCA_METRICS:\s*', '')"
+        "P$($n + 1) ($segundos s): $($metricas[-1].Line -replace '.*ZCA_METRICS:\s*', '')"
     } else {
         "P$($n + 1) ($segundos s): SIN METRICAS · $((Get-Lines $fin | Select-Object -Last 1).Line)"
     }
     Start-Sleep -Seconds 2
 }
 
-"--- $conMetricas/$([Math]::Min($Preguntas, $lista.Count)) con metricas ---"
+"--- $conMetricas/$total con metricas ---"
 "--- resumen logcat ---"
 # Firmas concretas y distinguiendo mayusculas: ai-chat tambien escribe en el log el texto de las
 # preguntas, los fragmentos y las respuestas, que dicen "error" o "fallo" sin que haya fallo.

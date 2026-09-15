@@ -10,8 +10,8 @@ import java.nio.ByteOrder
 /**
  * El índice del manual (`acs355.sqlite`, esquema v1 de `tools/zca_tools/construir.py`) abierto en
  * solo lectura con el SQLite empaquetado, que trae FTS5. Al abrir solo lee `meta`: los chunks, los
- * vectores y el glosario se cargan la primera vez que se piden, después de comprobar `meta` con
- * [MetaCheck]. Una conexión SQLite no admite hilos a la vez: `Assistant` serializa las llamadas.
+ * vectores y el glosario se cargan la primera vez que se piden, o todos a la vez con [preload],
+ * después de comprobar `meta` con [MetaCheck]. Una conexión SQLite no admite hilos a la vez: `Assistant` serializa las llamadas.
  * Sin tests JVM (SQLite nativo): se verifica en el móvil.
  */
 class ManualStore(path: File) : AutoCloseable {
@@ -26,6 +26,9 @@ class ManualStore(path: File) : AutoCloseable {
         }
     }
     val byId: Map<Long, Chunk> by lazy { chunks.associateBy { it.id } }
+    val texts: Map<Long, String> by lazy { chunks.associate { it.id to it.text } }
+    val chapters: Map<Long, String> by lazy { chunks.associate { it.id to it.chapter } }
+    val tokens: Map<Long, Int> by lazy { chunks.associate { it.id to it.tokens } }
 
     val dimension: Int get() = meta.getValue("dimension").toInt()
 
@@ -52,6 +55,11 @@ class ManualStore(path: File) : AutoCloseable {
         rows("SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ? ORDER BY rank", bind = { it.bindText(1, query) }) {
             it.getLong(0)
         }
+
+    /** Carga ya todo lo que consulta cada pregunta, para que no lo pague la primera. Tras [MetaCheck]. */
+    fun preload() {
+        byId; texts; chapters; tokens; vectors; glossary
+    }
 
     override fun close() = connection.close()
 

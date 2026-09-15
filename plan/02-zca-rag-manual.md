@@ -430,7 +430,7 @@ mínimo, verde, commit). Tests con `JAVA_HOME=<Temurin 17> bash gradlew :app:tes
 | 3.1 | Términos literales (**TDD**) | `rag/QueryTerms.kt`, tabla de casos de E1, más el glosario (`expansions`, comparación sin tildes, palabra entera o prefijo con `*`) y `literalClass` (fallo/alarma frente a parámetro), con los casos de `tools/tests/test_terminos.py` | Verde |
 | 3.2 | Búsqueda pura (**TDD**) | `rag/ManualSearch.kt`: `cosineTopK`, `rrf`, `select` y `prioritize` (gemelo de `priorizar`), con las tablas de E1 y de `tools/tests/test_evaluar.py` más: `cosineTopK` con 3 vectores de dimensión 2 devuelve el orden correcto | Verde |
 | 3.3 | Almacén | `rag/ManualStore.kt`: abre el `.sqlite` en solo lectura, lee `meta`, carga chunks, vectores (BLOB little-endian → `FloatArray` plano) y la tabla `glosario`, `ftsIds(query)` devuelve todos por `rank` (se priorizan y recortan a 10 en `ManualSearch`). Sin tests JVM (SQLite nativo); se verifica en el móvil en 3.14 | — |
-| 3.4 | Comprobación de `meta` (**TDD**) | `rag/MetaCheck.kt`: `null` → `Missing` con el `adb push`; `esquema = "2"` → `Incompatible`; `embeddings` distinto del e5 esperado → `Incompatible`; correcto → `Ok(ManualMeta(manual, version))` | Verde |
+| 3.4 | Comprobación de `meta` (**TDD**) | `rag/MetaCheck.kt` (sin `Missing`: quitado en 5.7 porque `Assistant` comprueba antes que el fichero existe, con su `adb push`): `esquema = "2"` → `Incompatible`; `embeddings` distinto del e5 esperado → `Incompatible`; correcto → `Ok(ManualMeta(manual, version))` | Verde |
 | 3.5 | Prompt (**TDD**) | `rag/PromptBuilder.kt`: `SYSTEM_PROMPT` (§6) y `userTurn(question, chunks)` con el formato exacto de §6. Tests: cadena exacta con 2 chunks; con 0 chunks lleva "(sin fragmentos)"; **nunca contiene "p. "**. Medir los tokens del prompt de sistema con `llama-tokenize` en el PC: ≤ 100 | Verde |
 | 3.6 | Seguridad (**TDD**) | `rag/SafetyRules.kt` con los casos de abajo | Verde |
 | 3.7 | Fuentes (**TDD**) | `rag/SourceList.kt`: una fuente por página, en el orden de los chunks; conserva capítulo y texto para desplegar | Verde |
@@ -466,10 +466,9 @@ class ManualStore(path: File) : AutoCloseable {
 }
 sealed interface MetaResult {
     data class Ok(val meta: ManualMeta) : MetaResult
-    data class Missing(val hint: String) : MetaResult
-    data class Incompatible(val reason: String, val hint: String) : MetaResult
+    data class Incompatible(val reason: String) : MetaResult
 }
-object MetaCheck { fun check(meta: Map<String, String>?, hint: String): MetaResult }
+object MetaCheck { fun check(meta: Map<String, String>): MetaResult }
 object PromptBuilder { const val SYSTEM_PROMPT: String; fun userTurn(question: String, chunks: List<Chunk>): String }
 object SafetyRules { fun check(question: String, chunks: List<Chunk>): SafetyNotice? }
 object SourceList { fun from(chunks: List<Chunk>): List<Source> }

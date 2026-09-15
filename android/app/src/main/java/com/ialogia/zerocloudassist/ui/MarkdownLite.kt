@@ -3,7 +3,8 @@ package com.ialogia.zerocloudassist.ui
 sealed interface Block {
     data class Heading(val level: Int, val spans: List<Span>) : Block
     data class Paragraph(val spans: List<Span>) : Block
-    data class ListItem(val ordered: Boolean, val number: Int?, val spans: List<Span>) : Block
+    /** [number] es el de una lista numerada; `null`, una viñeta. */
+    data class ListItem(val number: Int?, val spans: List<Span>) : Block
 }
 
 data class Span(val text: String, val bold: Boolean = false)
@@ -23,10 +24,8 @@ object MarkdownLite {
 
     private fun block(line: String): Block {
         HEADING.matchEntire(line)?.let { return Block.Heading(it.groupValues[1].length, spans(it.groupValues[2])) }
-        ORDERED.matchEntire(line)?.let {
-            return Block.ListItem(ordered = true, number = it.groupValues[1].toInt(), spans = spans(it.groupValues[2]))
-        }
-        BULLET.matchEntire(line)?.let { return Block.ListItem(ordered = false, number = null, spans = spans(it.groupValues[1])) }
+        ORDERED.matchEntire(line)?.let { return Block.ListItem(number = it.groupValues[1].toInt(), spans = spans(it.groupValues[2])) }
+        BULLET.matchEntire(line)?.let { return Block.ListItem(number = null, spans = spans(it.groupValues[1])) }
         return Block.Paragraph(spans(line))
     }
 
