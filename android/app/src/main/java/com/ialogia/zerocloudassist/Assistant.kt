@@ -280,7 +280,8 @@ object Assistant {
         val sentAt = SystemClock.elapsedRealtime()
         val chunks = retrieve(question)
         val searchMs = SystemClock.elapsedRealtime() - sentAt
-        val safety = SafetyRules.check(question, chunks)
+        val byId = manual!!.store.byId
+        val safety = SafetyRules.check(question, chunks) { byId[it.id - 1] }
         // Fuentes y aviso antes de procesar el prompt, para que haya dónde mirar mientras espera.
         entries = Conversation.attach(entries, SourceList.from(chunks), safety)
         phase = Phase.Processing(sentAt)
