@@ -25,11 +25,6 @@ class ConversationTest {
     }
 
     @Test
-    fun `sin preguntas no se avisa de la liberación tras el aviso inicial`() {
-        assertEquals(Conversation.initial(), Conversation.released(Conversation.initial()))
-    }
-
-    @Test
     fun `preguntar añade un turno con la pregunta y sin respuesta`() {
         assertEquals(listOf(Turn("¿Qué es un variador?")), Conversation.ask(emptyList(), "  ¿Qué es un variador?  "))
     }
@@ -59,25 +54,5 @@ class ConversationTest {
             listOf(Turn("P1", "R1"), Turn("P2", "1. Paso\n6.**", truncated = true)),
             Conversation.truncate(entries),
         )
-    }
-
-    @Test
-    fun `al liberar el modelo se avisa de que ya no recuerda lo anterior`() {
-        val entries = listOf(Turn("P1", "R1"))
-        assertEquals(
-            listOf(Turn("P1", "R1"), Notice(Conversation.RELEASED_NOTICE)),
-            Conversation.released(entries),
-        )
-    }
-
-    @Test
-    fun `sin conversación no hay aviso al liberar`() {
-        assertEquals(emptyList<Entry>(), Conversation.released(emptyList()))
-    }
-
-    @Test
-    fun `el aviso de liberación no se repite si no hubo preguntas nuevas`() {
-        val entries = listOf(Turn("P1", "R1"), Notice(Conversation.RELEASED_NOTICE))
-        assertEquals(entries, Conversation.released(entries))
     }
 }

@@ -334,7 +334,6 @@ object Assistant {
                 status = "No se pudo liberar el modelo"
                 return
             }
-            entries = Conversation.released(entries)
             Log.i(TAG, "Modelos liberados")
         }
         status = "Modelos liberados"
