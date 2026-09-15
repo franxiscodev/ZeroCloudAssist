@@ -167,7 +167,8 @@ private fun NoticeLine(text: String) {
 private fun TurnView(turn: Entry.Turn, waiting: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(turn.question, style = ZcaType.question, color = ZcaColors.text)
-        turn.safety?.let { SafetyCard(it, Assistant.pageSource(it.page)) }
+        // Una vez por turno: sin remember recorrería los 1 478 chunks en cada token de la respuesta.
+        turn.safety?.let { SafetyCard(it, remember(it.page) { Assistant.pageSource(it.page) }) }
         if (turn.answer.isNotEmpty()) MarkdownText(turn.answer)
         if (turn.truncated) EndMark("respuesta cortada: llegó al límite de longitud")
         if (turn.interrupted) EndMark("respuesta interrumpida")
@@ -297,7 +298,7 @@ private fun Composer(prompt: String, onChange: (String) -> Unit, onAsk: () -> Un
                     unfocusedTextColor = ZcaColors.text,
                 ),
             )
-            // "Preguntar" literal: los scripts de ADB (estres-movil, preguntar) buscan este texto.
+            // "Preguntar" literal: `tools/estres-movil.ps1` busca el botón por este texto.
             Button(
                 onClick = onAsk,
                 enabled = Assistant.ready && !Assistant.generating && prompt.isNotBlank(),

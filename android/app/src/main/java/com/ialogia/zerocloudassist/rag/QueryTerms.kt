@@ -4,6 +4,9 @@ import java.text.Normalizer
 
 /** Entrada del glosario taller → manual: formas en español y expansiones en sintaxis FTS5. */
 data class GlossaryEntry(val es: List<String>, val en: List<String>) {
+    /** Las formas ya compiladas: el glosario se lee una vez y se consulta en cada pregunta. */
+    internal val patterns: List<Regex> by lazy { es.map(QueryTerms::formPattern) }
+
     companion object {
         /** La tabla `glosario` del índice guarda cada lista unida por "|" (`construir.py`). */
         fun fromRow(es: String, en: String) = GlossaryEntry(es.split("|"), en.split("|"))
@@ -44,7 +47,7 @@ object QueryTerms {
         val text = normalize(question)
         val result = mutableListOf<String>()
         for (entry in glossary) {
-            if (entry.es.any { matches(it, text) }) entry.en.filterTo(result) { it !in result }
+            if (entry.patterns.any { it.containsMatchIn(text) }) entry.en.filterTo(result) { it !in result }
         }
         return result
     }
@@ -64,9 +67,7 @@ object QueryTerms {
         }
     }
 
-    /** Palabra entera, o prefijo si la forma acaba en `*`. */
-    private fun matches(form: String, text: String): Boolean {
-        val pattern = if (form.endsWith("*")) START + Regex.escape(form.dropLast(1)) else START + Regex.escape(form) + END
-        return Regex(pattern).containsMatchIn(text)
-    }
+    /** Una forma del glosario: palabra entera, o prefijo si acaba en `*`. */
+    internal fun formPattern(form: String): Regex =
+        Regex(if (form.endsWith("*")) START + Regex.escape(form.dropLast(1)) else START + Regex.escape(form) + END)
 }

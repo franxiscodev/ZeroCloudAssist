@@ -35,7 +35,9 @@ object ManualSearch {
             else -> 1
         }
 
-        return ids.sortedBy(::group)
+        // El grupo, una vez por id: `sortedBy` llamaría al selector (y a las regex) en cada comparación.
+        val groups = ids.associateWith(::group)
+        return ids.sortedBy { groups.getValue(it) }
     }
 
     fun rrf(rankings: List<List<Long>>, k: Int = 60): List<Long> {
