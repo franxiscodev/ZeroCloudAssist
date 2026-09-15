@@ -19,7 +19,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Geist:wght@300;400;700&display=swap">
 <style>
   /* Tema único a propósito: es la estética de la app (docs/diseno-ui.md), solo oscura y cálida. */
   :root {
@@ -150,11 +150,18 @@
   .firma { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 32px; border-top: 1px solid var(--line); padding-top: 24px; }
   .firma .quien { display: grid; gap: 6px; }
   .firma .label { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-  .firma .marca { font: 700 36px/1 var(--display); letter-spacing: 0.01em; color: var(--text); text-decoration: none; }
-  .firma .marca b { color: var(--amber); font-weight: 700; }
-  .firma .mail { font: 600 16px/1.2 var(--mono); color: var(--amber); text-decoration: none; overflow-wrap: anywhere; }
+  /* La marca de ialogia.es según su manual de identidad (Isotipo y Wordmark de su web): isotipo y
+     "logia" en cian #00FFFF, "IA" en blanco y negrita, ".es" fino en gris; fuente Geist. Sin latido. */
+  .firma .marca { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+  .firma .isotipo { width: 42px; height: 42px; flex: none; color: #00FFFF; }
+  .firma .wordmark { display: inline-flex; align-items: baseline; font-family: "Geist", var(--body); font-size: 27px; line-height: 1; letter-spacing: -0.025em; }
+  .firma .wordmark b { font-weight: 700; color: #FFFFFF; }
+  .firma .wordmark .logia { font-weight: 400; color: #00FFFF; }
+  .firma .wordmark .es { margin-left: 1px; font-weight: 300; font-size: 17px; color: #889393; }
+  /* El correo con el primario de ialogia.es (#4DD9D9): su manual guarda el #00FFFF puro para isotipo y wordmark. */
+  .firma .mail { font: 600 16px/1.2 var(--mono); color: #4DD9D9; text-decoration: none; overflow-wrap: anywhere; }
   .firma a:hover, .firma a:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
-  .firma a:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  .firma a:focus-visible { outline: 2px solid #4DD9D9; outline-offset: 3px; }
   @media (prefers-reduced-motion: reduce) { .bar i, .answer .caret { animation: none; } }
   /* Al final de la hoja, para ganar a las reglas de arriba. En una columna, el móvil va arriba y sin pegarse: pegado tapaba la lista de preguntas. Crece con
      la respuesta, sin scroll propio dentro del scroll de la página. */
@@ -218,7 +225,10 @@
   <div class="firma">
     <div class="quien">
       <span class="label">Un proyecto de</span>
-      <a class="marca" href="https://ialogia.es">ialogia<b>.es</b></a>
+      <a class="marca" href="https://ialogia.es">
+        <svg class="isotipo" viewBox="0 0 100 100" fill="none" aria-hidden="true"><rect x="50" y="6" width="62" height="62" rx="8" transform="rotate(45 50 6)" stroke="currentColor" stroke-width="2.5"/><rect x="50" y="20" width="42" height="42" rx="5" transform="rotate(45 50 20)" stroke="currentColor" stroke-width="1.25" opacity="0.45"/><g fill="currentColor"><circle cx="32" cy="32" r="2.75" opacity="0.75"/><circle cx="50" cy="32" r="2.75" opacity="0.75"/><circle cx="68" cy="32" r="2.75" opacity="0.75"/><circle cx="32" cy="50" r="2.75" opacity="0.75"/><circle cx="50" cy="50" r="5"/><circle cx="68" cy="50" r="2.75" opacity="0.75"/><circle cx="32" cy="68" r="2.75" opacity="0.75"/><circle cx="50" cy="68" r="2.75" opacity="0.75"/><circle cx="68" cy="68" r="2.75" opacity="0.75"/></g></svg>
+        <span class="wordmark"><b>IA</b><span class="logia">logia</span><span class="es">.es</span></span>
+      </a>
     </div>
     <a class="mail" href="mailto:francisco@ialogia.es">francisco@ialogia.es</a>
   </div>
