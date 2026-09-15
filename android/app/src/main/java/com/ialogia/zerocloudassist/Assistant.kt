@@ -107,8 +107,11 @@ object Assistant {
         MANUAL,
     )
 
-    /** El índice abierto, con su `meta` ya comprobada. Se queda abierto al salir. */
-    private class Manual(val store: ManualStore, val meta: ManualMeta)
+    /**
+     * El índice abierto, con su `meta` ya comprobada. Se queda abierto al salir de la app; [stamp]
+     * (fecha y tamaño del fichero) dice si al volver hay que abrir uno nuevo.
+     */
+    private class Manual(val store: ManualStore, val meta: ManualMeta, val stamp: Pair<Long, Long>)
 
     private var manual: Manual? = null
 
@@ -161,6 +164,8 @@ object Assistant {
 
     private fun hint(n: Needed) = ModelLocation.adbPushHint(appContext.packageName, n.subdir, n.name)
 
+    private fun stampOf(file: File) = file.lastModified() to file.length()
+
     private suspend fun load() {
         if (engine.state.value.isModelLoaded && Embedder.isLoaded && manual != null) return
 
@@ -174,6 +179,8 @@ object Assistant {
             block(Blocked(n.title, null, required, hint(n), n.pill))
             return
         }
+        // Ya están los tres: si algo falla después, lo dice la cabecera, no un "falta …" viejo.
+        blocked = null
         val (model, e5, index) = files
         if (!openManual(index, required)) return
 
@@ -206,7 +213,6 @@ object Assistant {
             return
         }
         val meta = manual!!.meta
-        blocked = null
         status = "${meta.manual} · índice ${meta.version}"
         ready = true
     }
@@ -218,10 +224,16 @@ object Assistant {
 
     /** Abre el índice y comprueba su `meta`; si no vale, lo deja en [blocked]. */
     private suspend fun openManual(file: File, required: List<RequiredFile>): Boolean {
-        if (manual != null) return true
         fun incompatible(reason: String) = block(Blocked("El índice no vale", reason, required, hint(MANUAL), MANUAL.pill))
 
         return withContext(Dispatchers.IO) {
+            val stamp = stampOf(file)
+            manual?.let { open ->
+                // Con la app en segundo plano se puede copiar otro índice encima: entonces se reabre.
+                if (open.stamp == stamp) return@withContext true
+                open.store.close()
+                manual = null
+            }
             val t0 = SystemClock.elapsedRealtime()
             val store = try {
                 ManualStore(file)
@@ -233,7 +245,7 @@ object Assistant {
             when (val result = MetaCheck.check(store.meta)) {
                 is MetaResult.Ok -> {
                     store.preload()
-                    manual = Manual(store, result.meta)
+                    manual = Manual(store, result.meta, stamp)
                     Log.i(TAG, "Índice ${result.meta.version}: ${store.chunks.size} chunks en " +
                         "${SystemClock.elapsedRealtime() - t0} ms")
                     true
